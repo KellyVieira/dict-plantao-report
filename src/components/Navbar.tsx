@@ -14,8 +14,12 @@ const Navbar = () => {
       <div className="container mx-auto py-4 px-4 md:px-6">
         <div className="flex flex-col md:flex-row items-center justify-between">
           <div className="flex items-center mb-4 md:mb-0">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mr-3">
-              <span className="text-police-blue font-bold text-xl">PC</span>
+            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mr-3 overflow-hidden">
+              <img 
+                src="/lovable-uploads/0619453a-5eda-4804-88ed-4f919b07fb5c.png" 
+                alt="Brasão da Polícia Civil" 
+                className="w-10 h-10 object-contain" 
+              />
             </div>
             <h1 className="text-xl md:text-2xl font-bold">Relatório de Plantão - DICT</h1>
           </div>

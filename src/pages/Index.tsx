@@ -7,8 +7,12 @@ const Index = () => {
   return (
     <div className="max-w-3xl mx-auto text-center py-10 animate-fade-in">
       <div className="flex justify-center mb-6">
-        <div className="w-20 h-20 bg-police-blue rounded-full flex items-center justify-center">
-          <span className="text-white font-bold text-3xl">PC</span>
+        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center overflow-hidden">
+          <img 
+            src="/lovable-uploads/0619453a-5eda-4804-88ed-4f919b07fb5c.png" 
+            alt="Brasão da Polícia Civil" 
+            className="w-16 h-16 object-contain" 
+          />
         </div>
       </div>
       

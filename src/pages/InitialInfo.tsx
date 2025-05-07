@@ -91,8 +91,8 @@ const InitialInfo = () => {
             <Label htmlFor="reportNumber">Número do relatório *</Label>
             <Input 
               id="reportNumber" 
-              type="number" 
-              placeholder="Ex: 12345"
+              type="text" 
+              placeholder="Ex: 01/2025"
               value={reportData.reportNumber}
               onChange={(e) => updateReportData({ reportNumber: e.target.value })}
               className={formErrors.reportNumber ? "border-red-500" : ""}
