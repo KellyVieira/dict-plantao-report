@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { useReport } from "../contexts/ReportContext";
 import { Button } from "@/components/ui/button";
@@ -10,11 +11,16 @@ import {
 } from "../utils/reportUtils";
 import { Eye, FileText, File } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
+import html2canvas from "jspdf-html2canvas";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
+import { saveAs } from "file-saver";
 
 const ReportExport = () => {
   const { reportData } = useReport();
   const { toast } = useToast();
   const [showPreview, setShowPreview] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const reportHtmlRef = useRef<HTMLDivElement>(null);
   const reportHtml = generateFullReportHTML(reportData);
 
@@ -22,30 +28,157 @@ const ReportExport = () => {
     setShowPreview(true);
   };
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
+    if (!reportHtmlRef.current) {
+      toast({
+        title: "Erro na exportação",
+        description: "A visualização do relatório precisa estar ativa para exportar como PDF.",
+        variant: "destructive"
+      });
+      setShowPreview(true);
+      return;
+    }
+
+    setIsExporting(true);
     toast({
-      title: "Exportação para PDF",
-      description: "Esta funcionalidade seria integrada com uma biblioteca de geração de PDF como jsPDF."
+      title: "Exportando PDF",
+      description: "Por favor, aguarde enquanto o arquivo é gerado..."
     });
+
+    try {
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4"
+      });
+
+      await html2canvas(pdf, reportHtmlRef.current, {
+        scale: 0.8,
+        windowWidth: 800,
+        scrollY: -window.scrollY
+      });
+
+      pdf.save(`Relatório_Plantão_${reportData.reportNumber || "DICT"}.pdf`);
+
+      toast({
+        title: "PDF exportado com sucesso!",
+        description: "O arquivo foi baixado para o seu dispositivo."
+      });
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast({
+        title: "Erro na exportação",
+        description: "Não foi possível gerar o PDF. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
-  const exportToWord = () => {
+  const exportToWord = async () => {
+    setIsExporting(true);
     toast({
-      title: "Exportação para DOCX",
-      description: "Esta funcionalidade seria integrada com uma biblioteca para geração de documentos DOCX."
+      title: "Exportando DOCX",
+      description: "Por favor, aguarde enquanto o arquivo é gerado..."
     });
-    
-    // In a real implementation, we could use a library like docx-js
-    // For now, we'll offer a workaround by downloading the HTML content
-    const blob = new Blob([reportHtml], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Relatório_Plantão_${reportData.reportNumber || "DICT"}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+
+    try {
+      // Extract text content from HTML
+      const title = `Relatório de Plantão ${reportData.reportNumber || ""}`;
+      const date = `Data: ${formatDate(reportData.reportDate)}`;
+      const period = `Período: ${formatDateTime(reportData.startDateTime)} a ${formatDateTime(reportData.endDateTime)}`;
+      const team = `Equipe: ${reportData.teamName || ""}`;
+      const office = `Cartório responsável: ${reportData.responsibleOffice || ""}`;
+
+      // Create document
+      const doc = new Document({
+        sections: [
+          {
+            properties: {},
+            children: [
+              new Paragraph({
+                text: title,
+                heading: HeadingLevel.HEADING_1,
+              }),
+              new Paragraph({
+                text: date,
+              }),
+              new Paragraph({
+                text: period,
+              }),
+              new Paragraph({
+                text: team,
+              }),
+              new Paragraph({
+                text: office,
+              }),
+              new Paragraph({
+                text: " ",
+              }),
+              new Paragraph({
+                text: "Dados Gerais",
+                heading: HeadingLevel.HEADING_2,
+              }),
+              ...reportData.officers.map(officer => 
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: `${officer.name} - ${officer.role}`,
+                    }),
+                  ],
+                })
+              ),
+              new Paragraph({
+                text: " ",
+              }),
+              new Paragraph({
+                text: "Ocorrências",
+                heading: HeadingLevel.HEADING_2,
+              }),
+              ...(reportData.hasOccurrences && reportData.occurrences.length > 0
+                ? reportData.occurrences.map(occurrence => [
+                    new Paragraph({ text: `RAI: ${occurrence.raiNumber}` }),
+                    new Paragraph({ text: `Natureza: ${occurrence.nature}` }),
+                    new Paragraph({ text: `Resumo: ${occurrence.summary}` }),
+                    new Paragraph({ text: `Cartório: ${occurrence.responsibleOffice}` }),
+                    new Paragraph({ text: " " }),
+                  ]).flat()
+                : [new Paragraph({ text: "Não houve ocorrências durante o plantão." })]
+              ),
+              new Paragraph({
+                text: " ",
+              }),
+              new Paragraph({
+                text: "Observações",
+                heading: HeadingLevel.HEADING_2,
+              }),
+              new Paragraph({
+                text: reportData.observations || "Sem observações adicionais.",
+              }),
+            ],
+          },
+        ],
+      });
+
+      // Generate and save document
+      const buffer = await Packer.toBuffer(doc);
+      saveAs(new Blob([buffer]), `Relatório_Plantão_${reportData.reportNumber || "DICT"}.docx`);
+
+      toast({
+        title: "DOCX exportado com sucesso!",
+        description: "O arquivo foi baixado para o seu dispositivo."
+      });
+    } catch (error) {
+      console.error("Erro ao gerar DOCX:", error);
+      toast({
+        title: "Erro na exportação",
+        description: "Não foi possível gerar o arquivo DOCX. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -55,6 +188,7 @@ const ReportExport = () => {
           <Button 
             className="bg-police-blue hover:bg-police-lightblue flex-1 gap-2 py-6" 
             onClick={handleViewReport}
+            disabled={isExporting}
           >
             <Eye className="h-5 w-5" />
             Visualizar Relatório
@@ -63,6 +197,7 @@ const ReportExport = () => {
           <Button 
             className="bg-red-700 hover:bg-red-800 flex-1 gap-2 py-6" 
             onClick={exportToPDF}
+            disabled={isExporting}
           >
             <File className="h-5 w-5" />
             Exportar PDF
@@ -71,6 +206,7 @@ const ReportExport = () => {
           <Button 
             className="bg-blue-700 hover:bg-blue-800 flex-1 gap-2 py-6" 
             onClick={exportToWord}
+            disabled={isExporting}
           >
             <FileText className="h-5 w-5" />
             Exportar .DOCX
