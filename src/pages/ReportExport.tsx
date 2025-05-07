@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { useReport } from "../contexts/ReportContext";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import {
   formatDate, 
   formatDateTime 
 } from "../utils/reportUtils";
-import { Eye, FileText, FilePdf } from "lucide-react";
+import { Eye, FileText, File } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const ReportExport = () => {
@@ -65,7 +64,7 @@ const ReportExport = () => {
             className="bg-red-700 hover:bg-red-800 flex-1 gap-2 py-6" 
             onClick={exportToPDF}
           >
-            <FilePdf className="h-5 w-5" />
+            <File className="h-5 w-5" />
             Exportar PDF
           </Button>
           
