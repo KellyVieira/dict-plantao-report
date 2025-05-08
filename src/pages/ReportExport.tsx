@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { useReport } from "../contexts/ReportContext";
 import { Button } from "@/components/ui/button";
@@ -34,42 +33,66 @@ const ReportExport = () => {
     });
 
     try {
-      // Extract text content from HTML
-      const title = `Relatório de Plantão ${reportData.reportNumber || ""}`;
-      const date = `Data: ${formatDate(reportData.reportDate)}`;
-      const period = `Período: ${formatDateTime(reportData.startDateTime)} a ${formatDateTime(reportData.endDateTime)}`;
-      const team = `Equipe: ${reportData.teamName || ""}`;
-      const office = `Cartório responsável: ${reportData.responsibleOffice || ""}`;
-
-      // Create document
+      // Create document with proper structure
       const doc = new Document({
         sections: [
           {
             properties: {},
             children: [
               new Paragraph({
-                text: title,
                 heading: HeadingLevel.HEADING_1,
+                children: [
+                  new TextRun({
+                    text: `Relatório de Plantão ${reportData.reportNumber || ""}`,
+                    bold: true,
+                  }),
+                ],
               }),
               new Paragraph({
-                text: date,
+                children: [
+                  new TextRun({
+                    text: `Data: ${formatDate(reportData.reportDate)}`,
+                  }),
+                ],
               }),
               new Paragraph({
-                text: period,
+                children: [
+                  new TextRun({
+                    text: `Período: ${formatDateTime(reportData.startDateTime)} a ${formatDateTime(reportData.endDateTime)}`,
+                  }),
+                ],
               }),
               new Paragraph({
-                text: team,
+                children: [
+                  new TextRun({
+                    text: `Equipe: ${reportData.teamName || ""}`,
+                  }),
+                ],
               }),
               new Paragraph({
-                text: office,
+                children: [
+                  new TextRun({
+                    text: `Cartório responsável: ${reportData.responsibleOffice || ""}`,
+                  }),
+                ],
               }),
               new Paragraph({
-                text: " ",
+                children: [
+                  new TextRun({
+                    text: " ",
+                  }),
+                ],
               }),
               new Paragraph({
-                text: "Dados Gerais",
                 heading: HeadingLevel.HEADING_2,
+                children: [
+                  new TextRun({
+                    text: "Dados Gerais",
+                    bold: true,
+                  }),
+                ],
               }),
+              // Officers section
               ...reportData.officers.map(officer => 
                 new Paragraph({
                   children: [
@@ -80,31 +103,66 @@ const ReportExport = () => {
                 })
               ),
               new Paragraph({
-                text: " ",
+                children: [
+                  new TextRun({
+                    text: " ",
+                  }),
+                ],
               }),
               new Paragraph({
-                text: "Ocorrências",
                 heading: HeadingLevel.HEADING_2,
+                children: [
+                  new TextRun({
+                    text: "Ocorrências",
+                    bold: true,
+                  }),
+                ],
               }),
+              // Occurrences section
               ...(reportData.hasOccurrences && reportData.occurrences.length > 0
                 ? reportData.occurrences.map(occurrence => [
-                    new Paragraph({ text: `RAI: ${occurrence.raiNumber}` }),
-                    new Paragraph({ text: `Natureza: ${occurrence.nature}` }),
-                    new Paragraph({ text: `Resumo: ${occurrence.summary}` }),
-                    new Paragraph({ text: `Cartório: ${occurrence.responsibleOffice}` }),
-                    new Paragraph({ text: " " }),
+                    new Paragraph({ 
+                      children: [new TextRun({ text: `RAI: ${occurrence.raiNumber}` })]
+                    }),
+                    new Paragraph({ 
+                      children: [new TextRun({ text: `Natureza: ${occurrence.nature}` })]
+                    }),
+                    new Paragraph({ 
+                      children: [new TextRun({ text: `Resumo: ${occurrence.summary}` })]
+                    }),
+                    new Paragraph({ 
+                      children: [new TextRun({ text: `Cartório: ${occurrence.responsibleOffice}` })]
+                    }),
+                    new Paragraph({ 
+                      children: [new TextRun({ text: " " })]
+                    }),
                   ]).flat()
-                : [new Paragraph({ text: "Não houve ocorrências durante o plantão." })]
+                : [new Paragraph({ 
+                    children: [new TextRun({ text: "Não houve ocorrências durante o plantão." })]
+                  })]
               ),
               new Paragraph({
-                text: " ",
+                children: [
+                  new TextRun({
+                    text: " ",
+                  }),
+                ],
               }),
               new Paragraph({
-                text: "Observações",
                 heading: HeadingLevel.HEADING_2,
+                children: [
+                  new TextRun({
+                    text: "Observações",
+                    bold: true,
+                  }),
+                ],
               }),
               new Paragraph({
-                text: reportData.observations || "Sem observações adicionais.",
+                children: [
+                  new TextRun({
+                    text: reportData.observations || "Sem observações adicionais.",
+                  }),
+                ],
               }),
             ],
           },
@@ -113,7 +171,11 @@ const ReportExport = () => {
 
       // Generate and save document
       const buffer = await Packer.toBuffer(doc);
-      saveAs(new Blob([buffer]), `Relatório_Plantão_${reportData.reportNumber || "DICT"}.docx`);
+      const fileName = `Relatório_Plantão_${reportData.reportNumber || "DICT"}.docx`;
+      
+      // Use correct saveAs implementation with proper MIME type
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      saveAs(blob, fileName);
 
       toast({
         title: "DOCX exportado com sucesso!",
