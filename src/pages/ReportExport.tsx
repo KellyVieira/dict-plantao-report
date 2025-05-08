@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { useReport } from "../contexts/ReportContext";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import {
   generateFullReportHTML, 
   formatDate, 
   formatDateTime 
-} from "../utils/reportUtils";
+} from "../utils/report";
 import { Eye, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
