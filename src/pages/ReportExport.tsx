@@ -170,17 +170,24 @@ const ReportExport = () => {
         ],
       });
 
-      // Generate and save document
-      const buffer = await Packer.toBuffer(doc);
-      const fileName = `Relatório_Plantão_${reportData.reportNumber || "DICT"}.docx`;
-      
-      // Use correct saveAs implementation with proper MIME type
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-      saveAs(blob, fileName);
-
-      toast({
-        title: "DOCX exportado com sucesso!",
-        description: "O arquivo foi baixado para o seu dispositivo."
+      // Generate the document as a blob directly for browser compatibility
+      Packer.toBlob(doc).then(blob => {
+        const fileName = `Relatório_Plantão_${reportData.reportNumber || "DICT"}.docx`;
+        saveAs(blob, fileName);
+        
+        toast({
+          title: "DOCX exportado com sucesso!",
+          description: "O arquivo foi baixado para o seu dispositivo."
+        });
+      }).catch(error => {
+        console.error("Erro ao gerar DOCX:", error);
+        toast({
+          title: "Erro na exportação",
+          description: "Não foi possível gerar o arquivo DOCX. Tente novamente.",
+          variant: "destructive"
+        });
+      }).finally(() => {
+        setIsExporting(false);
       });
     } catch (error) {
       console.error("Erro ao gerar DOCX:", error);
@@ -189,7 +196,6 @@ const ReportExport = () => {
         description: "Não foi possível gerar o arquivo DOCX. Tente novamente.",
         variant: "destructive"
       });
-    } finally {
       setIsExporting(false);
     }
   };
