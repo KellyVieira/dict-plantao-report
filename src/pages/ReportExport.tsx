@@ -9,10 +9,8 @@ import {
   formatDate, 
   formatDateTime 
 } from "../utils/reportUtils";
-import { Eye, FileText, File } from "lucide-react";
+import { Eye, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import jsPDF from "jspdf";
-import html2canvas from "jspdf-html2canvas";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { saveAs } from "file-saver";
 
@@ -26,54 +24,6 @@ const ReportExport = () => {
 
   const handleViewReport = () => {
     setShowPreview(true);
-  };
-
-  const exportToPDF = async () => {
-    if (!reportHtmlRef.current) {
-      toast({
-        title: "Erro na exportação",
-        description: "A visualização do relatório precisa estar ativa para exportar como PDF.",
-        variant: "destructive"
-      });
-      setShowPreview(true);
-      return;
-    }
-
-    setIsExporting(true);
-    toast({
-      title: "Exportando PDF",
-      description: "Por favor, aguarde enquanto o arquivo é gerado..."
-    });
-
-    try {
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4"
-      });
-
-      await html2canvas(pdf, reportHtmlRef.current, {
-        scale: 0.8,
-        windowWidth: 800,
-        scrollY: -window.scrollY
-      });
-
-      pdf.save(`Relatório_Plantão_${reportData.reportNumber || "DICT"}.pdf`);
-
-      toast({
-        title: "PDF exportado com sucesso!",
-        description: "O arquivo foi baixado para o seu dispositivo."
-      });
-    } catch (error) {
-      console.error("Erro ao gerar PDF:", error);
-      toast({
-        title: "Erro na exportação",
-        description: "Não foi possível gerar o PDF. Tente novamente.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsExporting(false);
-    }
   };
 
   const exportToWord = async () => {
@@ -192,15 +142,6 @@ const ReportExport = () => {
           >
             <Eye className="h-5 w-5" />
             Visualizar Relatório
-          </Button>
-          
-          <Button 
-            className="bg-red-700 hover:bg-red-800 flex-1 gap-2 py-6" 
-            onClick={exportToPDF}
-            disabled={isExporting}
-          >
-            <File className="h-5 w-5" />
-            Exportar PDF
           </Button>
           
           <Button 
