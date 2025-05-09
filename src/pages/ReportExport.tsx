@@ -7,11 +7,14 @@ import PageNavigation from "../components/PageNavigation";
 import { 
   generateFullReportHTML, 
   formatDate, 
-  formatDateTime 
+  formatDateTime,
+  getIntroductoryText,
+  getObservationsText,
+  getSignatureBlocks
 } from "../utils/report";
 import { Eye, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun } from "docx";
 import { saveAs } from "file-saver";
 
 const ReportExport = () => {
@@ -34,56 +37,47 @@ const ReportExport = () => {
     });
 
     try {
-      // Create document with proper structure
+      // Create document with proper structure and all content
       const doc = new Document({
         sections: [
           {
             properties: {},
             children: [
+              // Title and header
               new Paragraph({
                 heading: HeadingLevel.HEADING_1,
+                alignment: "center",
                 children: [
                   new TextRun({
                     text: `Relatório de Plantão ${reportData.reportNumber || ""}`,
                     bold: true,
+                    size: 32,
                   }),
                 ],
               }),
               new Paragraph({
+                alignment: "center",
                 children: [
                   new TextRun({
-                    text: `Data: ${formatDate(reportData.reportDate)}`,
+                    text: `${formatDate(reportData.reportDate)}`,
+                    italics: true,
+                    size: 24,
                   }),
                 ],
               }),
+              new Paragraph({ children: [new TextRun({ text: " " })] }),
+              
+              // Introduction section
               new Paragraph({
                 children: [
                   new TextRun({
-                    text: `Período: ${formatDateTime(reportData.startDateTime)} a ${formatDateTime(reportData.endDateTime)}`,
+                    text: getIntroductoryText(reportData).replace(/<[^>]*>/g, ''),
                   }),
                 ],
               }),
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: `Equipe: ${reportData.teamName || ""}`,
-                  }),
-                ],
-              }),
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: `Cartório responsável: ${reportData.responsibleOffice || ""}`,
-                  }),
-                ],
-              }),
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: " ",
-                  }),
-                ],
-              }),
+              new Paragraph({ children: [new TextRun({ text: " " })] }),
+              
+              // General data section
               new Paragraph({
                 heading: HeadingLevel.HEADING_2,
                 children: [
@@ -93,67 +87,156 @@ const ReportExport = () => {
                   }),
                 ],
               }),
-              // Officers section
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `Nome da equipe: ${reportData.teamName}`,
+                  }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `Cartório responsável: ${reportData.responsibleOffice}`,
+                  }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: "Policiais da equipe:",
+                  }),
+                ],
+              }),
+              // Officers list
               ...reportData.officers.map(officer => 
                 new Paragraph({
                   children: [
                     new TextRun({
-                      text: `${officer.name} - ${officer.role}`,
+                      text: `- ${officer.name} - ${officer.role}`,
                     }),
                   ],
                 })
               ),
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: " ",
-                  }),
-                ],
-              }),
-              new Paragraph({
-                heading: HeadingLevel.HEADING_2,
-                children: [
-                  new TextRun({
-                    text: "Ocorrências",
-                    bold: true,
-                  }),
-                ],
-              }),
+              new Paragraph({ children: [new TextRun({ text: " " })] }),
+              
               // Occurrences section
-              ...(reportData.hasOccurrences && reportData.occurrences.length > 0
-                ? reportData.occurrences.map(occurrence => [
-                    new Paragraph({ 
-                      children: [new TextRun({ text: `RAI: ${occurrence.raiNumber}` })]
-                    }),
-                    new Paragraph({ 
-                      children: [new TextRun({ text: `Natureza: ${occurrence.nature}` })]
-                    }),
-                    new Paragraph({ 
-                      children: [new TextRun({ text: `Resumo: ${occurrence.summary}` })]
-                    }),
-                    new Paragraph({ 
-                      children: [new TextRun({ text: `Cartório: ${occurrence.responsibleOffice}` })]
-                    }),
-                    new Paragraph({ 
-                      children: [new TextRun({ text: " " })]
-                    }),
-                  ]).flat()
-                : [new Paragraph({ 
-                    children: [new TextRun({ text: "Não houve ocorrências durante o plantão." })]
-                  })]
-              ),
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: " ",
-                  }),
-                ],
-              }),
               new Paragraph({
                 heading: HeadingLevel.HEADING_2,
                 children: [
                   new TextRun({
-                    text: "Observações",
+                    text: "Resumo das Ocorrências",
+                    bold: true,
+                  }),
+                ],
+              }),
+              // Occurrences content
+              ...(reportData.hasOccurrences && reportData.occurrences.length > 0
+                ? [
+                    ...reportData.occurrences.flatMap(occurrence => [
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: `Número do RAI: ${occurrence.raiNumber}`,
+                            bold: true,
+                          }),
+                        ],
+                      }),
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: `Natureza da Ocorrência: ${occurrence.nature}`,
+                          }),
+                        ],
+                      }),
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: `Resumo da Ocorrência: ${occurrence.summary}`,
+                          }),
+                        ],
+                      }),
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: `Cartório Responsável: ${occurrence.responsibleOffice}`,
+                          }),
+                        ],
+                      }),
+                      new Paragraph({ children: [new TextRun({ text: " " })] }),
+                    ]),
+                  ]
+                : [
+                    new Paragraph({
+                      children: [
+                        new TextRun({
+                          text: "Não houve ocorrências durante o plantão.",
+                          italics: true,
+                        }),
+                      ],
+                    }),
+                  ]
+              ),
+              new Paragraph({ children: [new TextRun({ text: " " })] }),
+              
+              // Images section
+              new Paragraph({
+                heading: HeadingLevel.HEADING_2,
+                children: [
+                  new TextRun({
+                    text: "Imagens Relevantes",
+                    bold: true,
+                  }),
+                ],
+              }),
+              
+              // Images content
+              ...(reportData.images.length > 0
+                ? reportData.images.flatMap(image => {
+                    // For each image, we'll try to add it to the document
+                    try {
+                      // For demonstration, we're not actually adding images as it requires binary data
+                      // Instead, we're adding placeholders with the descriptions
+                      return [
+                        new Paragraph({ 
+                          children: [
+                            new TextRun({ 
+                              text: image.description || `Imagem ${reportData.images.indexOf(image) + 1}`,
+                              italics: true
+                            })
+                          ] 
+                        }),
+                        new Paragraph({ children: [new TextRun({ text: " " })] }),
+                      ];
+                    } catch (error) {
+                      console.error("Error adding image:", error);
+                      return [
+                        new Paragraph({ 
+                          children: [new TextRun({ text: `[Imagem não pôde ser incluída]` })] 
+                        }),
+                        new Paragraph({ children: [new TextRun({ text: " " })] }),
+                      ];
+                    }
+                  })
+                : [
+                    new Paragraph({
+                      children: [
+                        new TextRun({
+                          text: "Sem imagens relevantes",
+                          italics: true,
+                        }),
+                      ],
+                    }),
+                  ]
+              ),
+              new Paragraph({ children: [new TextRun({ text: " " })] }),
+              
+              // Observations section
+              new Paragraph({
+                heading: HeadingLevel.HEADING_2,
+                children: [
+                  new TextRun({
+                    text: "Observações e Recomendações",
                     bold: true,
                   }),
                 ],
@@ -161,10 +244,55 @@ const ReportExport = () => {
               new Paragraph({
                 children: [
                   new TextRun({
-                    text: reportData.observations || "Sem observações adicionais.",
+                    text: getObservationsText(reportData.observations),
                   }),
                 ],
               }),
+              new Paragraph({ children: [new TextRun({ text: " " })] }),
+              
+              // Conclusion
+              new Paragraph({
+                heading: HeadingLevel.HEADING_2,
+                children: [
+                  new TextRun({
+                    text: "Conclusão",
+                    bold: true,
+                  }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: "Esta equipe finaliza o presente relatório, permanecendo à disposição para eventuais esclarecimentos.",
+                  }),
+                ],
+              }),
+              new Paragraph({ children: [new TextRun({ text: " " })] }),
+              
+              // Signatures section
+              new Paragraph({
+                heading: HeadingLevel.HEADING_2,
+                children: [
+                  new TextRun({
+                    text: "Assinaturas",
+                    bold: true,
+                  }),
+                ],
+              }),
+              
+              // Add signature blocks for each officer
+              ...reportData.officers.map(officer => [
+                new Paragraph({ children: [new TextRun({ text: " " })] }),
+                new Paragraph({ children: [new TextRun({ text: " " })] }),
+                new Paragraph({ children: [new TextRun({ text: "__________________________" })] }),
+                new Paragraph({ 
+                  children: [
+                    new TextRun({ 
+                      text: `${officer.name} - ${officer.role}`
+                    })
+                  ] 
+                }),
+              ]).flat()
             ],
           },
         ],
