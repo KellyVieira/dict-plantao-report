@@ -11,6 +11,16 @@ const base64ToBlob = async (dataUrl: string): Promise<Blob> => {
   return await response.blob();
 };
 
+// Helper function to convert base64 to Uint8Array (browser-compatible)
+const base64ToUint8Array = (base64String: string): Uint8Array => {
+  // Remove data URL prefix if present
+  const base64 = base64String.split(',')[1] || base64String;
+  // Convert base64 to binary string using the browser's atob function
+  const binaryString = atob(base64);
+  // Create Uint8Array from binary string
+  return Uint8Array.from(binaryString, c => c.charCodeAt(0));
+};
+
 export async function exportReportToWord(reportData: ReportData): Promise<void> {
   const docChildren = [
     // Title and header
@@ -274,6 +284,7 @@ export async function exportReportToWord(reportData: ReportData): Promise<void> 
                     height: 300,
                   },
                   altText: {
+                    name: `image-${reportData.images.indexOf(image) + 1}`,
                     title: image.description || `Image ${reportData.images.indexOf(image) + 1}`,
                     description: image.description || `Image ${reportData.images.indexOf(image) + 1}`,
                   }
