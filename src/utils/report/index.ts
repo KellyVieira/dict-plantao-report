@@ -8,3 +8,5 @@ export {
   getSignatureBlocks 
 } from './htmlGenerators';
 export { generateFullReportHTML } from './reportGenerator';
+export { exportReportToWord } from './docxExport';
+
