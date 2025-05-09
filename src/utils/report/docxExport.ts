@@ -263,7 +263,7 @@ export async function exportReportToWord(reportData: ReportData): Promise<void> 
             })
           );
           
-          // Add the image
+          // Add the image with proper configuration
           docChildren.push(
             new Paragraph({
               children: [
@@ -273,6 +273,10 @@ export async function exportReportToWord(reportData: ReportData): Promise<void> 
                     width: 400,
                     height: 300,
                   },
+                  altText: {
+                    title: image.description || `Image ${reportData.images.indexOf(image) + 1}`,
+                    description: image.description || `Image ${reportData.images.indexOf(image) + 1}`,
+                  }
                 }),
               ],
             })
