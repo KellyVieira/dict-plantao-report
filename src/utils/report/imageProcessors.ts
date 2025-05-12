@@ -32,19 +32,19 @@ export const processImagesForDocument = async (reportData: ReportData): Promise<
             index
           );
           
-          // Create a table for the image and its description
+          // Create a table for the image and its description with visible borders
           const imageTable = new Table({
             width: {
               size: 100,
               type: WidthType.PERCENTAGE,
             },
             borders: {
-              top: { style: BorderStyle.SINGLE, size: 1, color: COLORS.WHITE },
-              bottom: { style: BorderStyle.SINGLE, size: 1, color: COLORS.WHITE },
-              left: { style: BorderStyle.SINGLE, size: 1, color: COLORS.WHITE },
-              right: { style: BorderStyle.SINGLE, size: 1, color: COLORS.WHITE },
-              insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: COLORS.WHITE },
-              insideVertical: { style: BorderStyle.SINGLE, size: 1, color: COLORS.WHITE },
+              top: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+              bottom: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+              left: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+              right: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+              insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+              insideVertical: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
             },
             rows: [
               new TableRow({
@@ -114,6 +114,7 @@ export const processImagesForDocument = async (reportData: ReportData): Promise<
           // Add fallback text noting the error
           imageParagraphs.push(
             new Paragraph({
+              alignment: AlignmentType.JUSTIFIED,
               spacing: {
                 before: SPACING.BEFORE.STANDARD,
                 after: SPACING.AFTER.STANDARD,
@@ -135,6 +136,7 @@ export const processImagesForDocument = async (reportData: ReportData): Promise<
       console.error("Error processing images:", error);
       imageParagraphs.push(
         new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
           spacing: {
             before: SPACING.BEFORE.STANDARD,
             after: SPACING.AFTER.STANDARD,
@@ -154,6 +156,7 @@ export const processImagesForDocument = async (reportData: ReportData): Promise<
   } else {
     imageParagraphs.push(
       new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
         spacing: {
           before: SPACING.BEFORE.STANDARD,
           after: SPACING.AFTER.STANDARD,

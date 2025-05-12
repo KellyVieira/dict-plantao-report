@@ -121,7 +121,7 @@ export const createGeneralDataSection = (reportData: ReportData): Paragraph[] =>
  */
 export const createOccurrencesSection = (reportData: ReportData): (Paragraph | Table)[] => {
   const headerParagraph = [
-    getHeading2Style("Resumo das Ocorrências")
+    getHeading2Style("1. Resumo das Ocorrências")
   ];
 
   // Check if there are occurrences
@@ -175,7 +175,7 @@ export const createOccurrencesSection = (reportData: ReportData): (Paragraph | T
  */
 export const createImagesSectionHeader = (): Paragraph[] => {
   return [
-    getHeading2Style("Imagens Relevantes")
+    getHeading2Style("2. Imagens Relevantes")
   ];
 };
 
@@ -185,7 +185,7 @@ export const createImagesSectionHeader = (): Paragraph[] => {
 export const createConclusionSection = (reportData: ReportData): Paragraph[] => {
   return [
     // Observations section
-    getHeading2Style("Observações e Recomendações"),
+    getHeading2Style("3. Observações e Recomendações"),
     getNormalStyle(getObservationsText(reportData.observations)),
     
     // Spacing between subsections
@@ -195,7 +195,7 @@ export const createConclusionSection = (reportData: ReportData): Paragraph[] => 
     }),
     
     // Conclusion
-    getHeading2Style("Conclusão"),
+    getHeading2Style("4. Conclusão"),
     getNormalStyle("Esta equipe finaliza o presente relatório, permanecendo à disposição para eventuais esclarecimentos."),
     
     // Spacing after section

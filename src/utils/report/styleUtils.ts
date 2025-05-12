@@ -73,7 +73,8 @@ export const getHeading1Style = (text: string) => {
         text: text,
         bold: true,
         size: 28, // 14pt
-        font: FONTS.TIMES_NEW_ROMAN
+        font: FONTS.TIMES_NEW_ROMAN,
+        color: COLORS.BLACK
       }),
     ],
   });
@@ -92,7 +93,8 @@ export const getHeading2Style = (text: string) => {
         text: text,
         bold: true,
         size: 24, // 12pt
-        font: FONTS.TIMES_NEW_ROMAN
+        font: FONTS.TIMES_NEW_ROMAN,
+        color: COLORS.BLACK
       }),
     ],
   });
@@ -110,7 +112,8 @@ export const getSectionTitleStyle = (text: string) => {
         text: text.toUpperCase(),
         bold: true,
         size: 24, // 12pt
-        font: FONTS.TIMES_NEW_ROMAN
+        font: FONTS.TIMES_NEW_ROMAN,
+        color: COLORS.BLACK
       }),
     ],
   });
@@ -121,6 +124,7 @@ export const getSectionTitleStyle = (text: string) => {
  */
 export const getNormalStyle = (text: string, options: { italics?: boolean } = {}) => {
   return new Paragraph({
+    alignment: AlignmentType.JUSTIFIED,
     spacing: {
       before: SPACING.BEFORE.STANDARD,
       after: SPACING.AFTER.STANDARD,
@@ -202,7 +206,8 @@ export const createInstitutionalHeader = (brasaoEstadoGoias: Uint8Array, brasaoP
                       text,
                       bold: true,
                       size: 20, // 10pt
-                      font: FONTS.TIMES_NEW_ROMAN
+                      font: FONTS.TIMES_NEW_ROMAN,
+                      color: COLORS.BLACK
                     }),
                   ],
                 })
@@ -322,6 +327,7 @@ export const createDataTable = (rows: { label: string; value: string }[]) => {
             },
             children: [
               new Paragraph({
+                alignment: AlignmentType.JUSTIFIED,
                 spacing: {
                   before: SPACING.BEFORE.SMALL,
                   after: SPACING.AFTER.SMALL,
