@@ -1,5 +1,5 @@
 
-import { Document, Packer, Table } from "docx";
+import { Document, Packer, Table, Paragraph } from "docx";
 import { saveAs } from "file-saver";
 import { ReportData } from "../../types/report";
 import {

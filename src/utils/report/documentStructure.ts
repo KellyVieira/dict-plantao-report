@@ -1,4 +1,3 @@
-
 import { 
   Document, 
   Paragraph, 
@@ -12,7 +11,11 @@ import {
   BorderStyle,
   PageBorderDisplay,
   PageBorderOffsetFrom,
-  PageBorderZOrder
+  PageBorderZOrder,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType
 } from "docx";
 import { ReportData } from "../../types/report";
 import { formatDate, formatDateTime } from "./dateFormatters";
