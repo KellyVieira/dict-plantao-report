@@ -1,3 +1,4 @@
+
 import { Occurrence, ReportData } from "../../types/report";
 import { formatDate, formatDateTime } from "./dateFormatters";
 import { getIntroductoryText, getObservationsText } from "./textGenerators";
@@ -126,3 +127,4 @@ export function getDocumentFooter(): string {
     <p style="color: #FF0000; font-weight: bold; font-family: 'Times New Roman', Times, serif; font-size: 8pt;">DOCUMENTO RESERVADO - DICT</p>
   </div>
   `;
+}
