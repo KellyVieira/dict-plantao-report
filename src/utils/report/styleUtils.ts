@@ -140,7 +140,7 @@ export const getNormalStyle = (text: string, options: { italics?: boolean } = {}
 /**
  * Create table with institutional header
  */
-export const createInstitutionalHeader = (brasaoEstadoGoias: Buffer, brasaoPolicialCivil: Buffer) => {
+export const createInstitutionalHeader = (brasaoEstadoGoias: Uint8Array, brasaoPolicialCivil: Uint8Array) => {
   return new Table({
     width: {
       size: 100,

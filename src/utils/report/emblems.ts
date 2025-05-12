@@ -4,24 +4,28 @@
  */
 
 // Placeholder for images that will be loaded
-let brasaoEstadoGoias: Buffer;
-let brasaoPolicialCivil: Buffer;
+let brasaoEstadoGoias: Uint8Array;
+let brasaoPolicialCivil: Uint8Array;
 
 /**
  * Load the emblems needed for the document
  */
 export const loadEmblems = async (): Promise<void> => {
   try {
-    const stateResponse = await fetch('/brasao-goias.png');
-    const policeResponse = await fetch('/brasao-policia-civil.png');
+    // Use the uploaded images
+    const stateResponse = await fetch('/lovable-uploads/81c65d63-622f-4659-9e6e-325660565994.png');
+    const policeResponse = await fetch('/lovable-uploads/40f0ded4-d89b-4ec7-847e-a35119ee6181.png');
     
-    brasaoEstadoGoias = Buffer.from(await stateResponse.arrayBuffer());
-    brasaoPolicialCivil = Buffer.from(await policeResponse.arrayBuffer());
+    // Convert to Uint8Array instead of Buffer for browser compatibility
+    brasaoEstadoGoias = new Uint8Array(await stateResponse.arrayBuffer());
+    brasaoPolicialCivil = new Uint8Array(await policeResponse.arrayBuffer());
+    
+    console.log("Emblems loaded successfully");
   } catch (error) {
     console.error("Error loading emblems:", error);
-    // Create empty buffers in case of failure
-    brasaoEstadoGoias = Buffer.from([]);
-    brasaoPolicialCivil = Buffer.from([]);
+    // Create empty arrays in case of failure
+    brasaoEstadoGoias = new Uint8Array();
+    brasaoPolicialCivil = new Uint8Array();
   }
 };
 
@@ -29,8 +33,8 @@ export const loadEmblems = async (): Promise<void> => {
  * Get loaded emblems
  */
 export const getEmblems = (): { 
-  brasaoEstadoGoias: Buffer; 
-  brasaoPolicialCivil: Buffer 
+  brasaoEstadoGoias: Uint8Array; 
+  brasaoPolicialCivil: Uint8Array 
 } => {
   return {
     brasaoEstadoGoias,

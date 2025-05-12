@@ -64,7 +64,7 @@ export const getDocumentSection = (children: (Paragraph | Table)[], hasHeadersAn
   if (hasHeadersAndFooters) {
     const { brasaoEstadoGoias, brasaoPolicialCivil } = getEmblems();
     
-    if (brasaoEstadoGoias && brasaoPolicialCivil) {
+    if (brasaoEstadoGoias.length > 0 && brasaoPolicialCivil.length > 0) {
       section.headers = {
         default: new Header({
           children: [

@@ -14,7 +14,15 @@ const ReportPreview = ({ reportData }: ReportPreviewProps) => {
   
   useEffect(() => {
     // Load emblems when the component mounts
-    loadEmblems();
+    const loadImages = async () => {
+      try {
+        await loadEmblems();
+      } catch (error) {
+        console.error("Error loading images for preview:", error);
+      }
+    };
+    
+    loadImages();
   }, []);
 
   return (
