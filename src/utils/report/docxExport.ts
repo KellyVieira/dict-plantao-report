@@ -1,33 +1,41 @@
 
-import { Document, Packer } from "docx";
+import { Document, Packer, Table } from "docx";
 import { saveAs } from "file-saver";
 import { ReportData } from "../../types/report";
 import {
   createHeaderSection,
   createIntroductionSection,
-  createGeneralDataSection,
   createOccurrencesSection,
   createImagesSectionHeader,
   createConclusionSection,
   createSignaturesSection,
-  processImagesForDocument
+  processImagesForDocument,
+  loadEmblems,
+  getDocumentSection
 } from "./documentStructure";
 
 /**
  * Exports the report data to a Word document
  */
 export async function exportReportToWord(reportData: ReportData): Promise<void> {
-  // Create an array to store all paragraphs
-  const docChildren = [
+  // First, load the emblems needed for the institutional header
+  await loadEmblems();
+  
+  // Create an array to store all content elements (paragraphs or tables)
+  const docChildren: (Paragraph | Table)[] = [
     ...createHeaderSection(reportData),
     ...createIntroductionSection(reportData),
-    ...createGeneralDataSection(reportData),
-    ...createOccurrencesSection(reportData),
-    ...createImagesSectionHeader()
   ];
 
+  // Add occurrences section
+  const occurrencesSection = createOccurrencesSection(reportData);
+  docChildren.push(...occurrencesSection);
+
+  // Add images section header
+  docChildren.push(...createImagesSectionHeader());
+
   // Process images
-  const imageParagraphs = await processImagesForDocument(reportData, docChildren);
+  const imageParagraphs = await processImagesForDocument(reportData);
   docChildren.push(...imageParagraphs);
 
   // Add conclusion and signatures
@@ -36,13 +44,10 @@ export async function exportReportToWord(reportData: ReportData): Promise<void> 
     ...createSignaturesSection(reportData)
   );
 
-  // Create document
+  // Create document with proper section formatting
   const doc = new Document({
     sections: [
-      {
-        properties: {},
-        children: docChildren,
-      },
+      getDocumentSection(docChildren, true)
     ],
   });
 

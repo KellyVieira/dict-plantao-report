@@ -51,3 +51,16 @@ export const processImageForDocx = async (
     throw new Error(`Failed to process image: ${error}`);
   }
 };
+
+/**
+ * Load image from URL and return as Buffer
+ */
+export const loadImageAsBuffer = async (url: string): Promise<Buffer> => {
+  try {
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  } catch (error) {
+    throw new Error(`Failed to load image from URL: ${error}`);
+  }
+};
