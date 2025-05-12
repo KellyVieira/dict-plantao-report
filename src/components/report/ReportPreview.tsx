@@ -2,7 +2,7 @@
 import { useEffect, useRef } from "react";
 import { ReportData } from "../../types/report";
 import { generateFullReportHTML } from "../../utils/report";
-import { loadEmblems } from "../../utils/report/documentStructure";
+import { loadEmblems } from "../../utils/report/emblems";
 
 type ReportPreviewProps = {
   reportData: ReportData;
