@@ -303,7 +303,7 @@ export const processImagesForDocument = async (reportData: ReportData, documentC
             })
           );
           
-          // Fixed ImageRun configuration by adding type and fallback properties
+          // Fixed ImageRun configuration by adding type property with correct value
           imageParagraphs.push(
             new Paragraph({
               children: [
@@ -317,7 +317,7 @@ export const processImagesForDocument = async (reportData: ReportData, documentC
                     name: processedImage.altText.name,
                     description: processedImage.altText.description,
                   },
-                  type: "image",
+                  type: "png", // Using 'png' instead of 'image' as it's one of the allowed types
                 }),
               ],
             })
