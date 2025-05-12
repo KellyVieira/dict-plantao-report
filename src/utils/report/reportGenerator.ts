@@ -68,6 +68,7 @@ export function generateFullReportHTML(reportData: ReportData): string {
         p {
           margin: 6pt 0;
           font-size: 12pt;
+          text-align: justify;
         }
         
         table {
@@ -114,7 +115,7 @@ export function generateFullReportHTML(reportData: ReportData): string {
         </div>
         
         <div class="section">
-          <h2>Resumo das Ocorrências</h2>
+          <h2>1. Resumo das Ocorrências</h2>
           ${reportData.hasOccurrences 
             ? getOccurrencesTable(reportData.occurrences)
             : "<p><em>Não houve ocorrências durante o plantão.</em></p>"
@@ -122,17 +123,17 @@ export function generateFullReportHTML(reportData: ReportData): string {
         </div>
         
         <div class="section">
-          <h2>Imagens Relevantes</h2>
+          <h2>2. Imagens Relevantes</h2>
           ${getImagesHTML(reportData)}
         </div>
         
         <div class="section">
-          <h2>Observações e Recomendações</h2>
+          <h2>3. Observações e Recomendações</h2>
           <p>${getObservationsText(reportData.observations)}</p>
         </div>
         
         <div class="section">
-          <h2>Conclusão</h2>
+          <h2>4. Conclusão</h2>
           <p>Esta equipe finaliza o presente relatório, permanecendo à disposição para eventuais esclarecimentos.</p>
         </div>
         

@@ -36,11 +36,11 @@ export function getOccurrencesTable(occurrences: Occurrence[]): string {
 
 export function getImagesHTML(reportData: ReportData): string {
   if (!reportData.images.length) {
-    return "<p style='font-family: \"Times New Roman\", Times, serif; font-style: italic;'>Sem imagens relevantes</p>";
+    return "<p style='font-family: \"Times New Roman\", Times, serif; font-style: italic; text-align: justify;'>Sem imagens relevantes</p>";
   }
   
   return reportData.images.map((image, index) => `
-    <table border="0" cellspacing="0" cellpadding="8" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+    <table border="1" cellspacing="0" cellpadding="8" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border-color: #D3D3D3;">
       <tr>
         <td style="text-align: center;">
           <img src="${image.dataUrl}" alt="Imagem ${index + 1}" style="max-width: 100%; max-height: 300px;" />
