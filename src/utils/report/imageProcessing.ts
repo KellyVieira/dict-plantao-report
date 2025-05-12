@@ -30,7 +30,6 @@ export const processImageForDocx = async (
   imageData: ArrayBuffer;
   altText: {
     name: string;
-    title: string;
     description: string;
   };
 }> => {
@@ -45,7 +44,6 @@ export const processImageForDocx = async (
       imageData: arrayBuffer,
       altText: {
         name: `image-${index + 1}`,
-        title: description || `Image ${index + 1}`,
         description: description || `Image ${index + 1}`,
       }
     };

@@ -303,7 +303,7 @@ export const processImagesForDocument = async (reportData: ReportData, documentC
             })
           );
           
-          // Add the image with proper configuration
+          // Fixed ImageRun configuration by adding type and fallback properties
           imageParagraphs.push(
             new Paragraph({
               children: [
@@ -313,7 +313,11 @@ export const processImagesForDocument = async (reportData: ReportData, documentC
                     width: 400,
                     height: 300,
                   },
-                  altText: processedImage.altText
+                  altText: {
+                    name: processedImage.altText.name,
+                    description: processedImage.altText.description,
+                  },
+                  type: "image",
                 }),
               ],
             })
