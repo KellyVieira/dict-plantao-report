@@ -30,12 +30,17 @@ export async function processImagesForDocument(reportData: ReportData): Promise<
   for (const [index, image] of reportData.images.entries()) {
     try {
       // Process the image from data URL to docx format
-      const imageData = await processImageForDocx(image.dataUrl);
-      if (!imageData) continue;
+      const processedImage = await processImageForDocx(
+        image.dataUrl, 
+        image.description || `Imagem ${index + 1}`,
+        index
+      );
+      
+      if (!processedImage) continue;
       
       // Create a bordered table for the image with proper centering
       const imageTable = createImageTable(
-        imageData,
+        processedImage.imageData,
         image.description || `Imagem ${index + 1}`
       );
       

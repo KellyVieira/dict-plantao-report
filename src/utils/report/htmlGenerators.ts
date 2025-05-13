@@ -93,7 +93,6 @@ export function getSignatureBlocks(reportData: ReportData): string {
   return reportData.officers.map(officer => `
     <div style="margin-top: 30px; text-align: center;">
       <div style="width: 200px; margin: 0 auto;">
-        <div style="width: 100%; border-top: 1px solid black;"></div>
         <p style="margin: 5px 0; font-family: 'Times New Roman', Times, serif;">${officer.name}<br>${officer.role}</p>
       </div>
     </div>
@@ -105,16 +104,16 @@ export function getSignatureBlocks(reportData: ReportData): string {
  */
 export const getInstitutionalHeader = (): string => {
   return `
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24pt;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24pt; text-align: center;">
       <div style="width: 15%; text-align: center;">
         <img src="/lovable-uploads/40f0ded4-d89b-4ec7-847e-a35119ee6181.png" alt="Brasão da Polícia Civil" style="width: 65px; height: 65px;" />
       </div>
       <div style="width: 70%; text-align: center;">
-        <p style="margin: 0; font-weight: bold; font-size: 10pt;">ESTADO DE GOIÁS</p>
-        <p style="margin: 0; font-weight: bold; font-size: 10pt;">SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA</p>
-        <p style="margin: 0; font-weight: bold; font-size: 10pt;">POLÍCIA CIVIL</p>
-        <p style="margin: 0; font-weight: bold; font-size: 10pt;">DELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES DE CRIMES DE</p>
-        <p style="margin: 0; font-weight: bold; font-size: 10pt;">TRÂNSITO - DICT DE GOIÂNIA</p>
+        <p style="margin: 0; font-weight: bold; font-size: 10pt; text-align: center;">ESTADO DE GOIÁS</p>
+        <p style="margin: 0; font-weight: bold; font-size: 10pt; text-align: center;">SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA</p>
+        <p style="margin: 0; font-weight: bold; font-size: 10pt; text-align: center;">POLÍCIA CIVIL</p>
+        <p style="margin: 0; font-weight: bold; font-size: 10pt; text-align: center;">DELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES DE CRIMES DE</p>
+        <p style="margin: 0; font-weight: bold; font-size: 10pt; text-align: center;">TRÂNSITO - DICT DE GOIÂNIA</p>
       </div>
       <div style="width: 15%; text-align: center;">
         <img src="/lovable-uploads/81c65d63-622f-4659-9e6e-325660565994.png" alt="Brasão de Goiás" style="width: 65px; height: 65px;" />

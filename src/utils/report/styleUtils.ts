@@ -1,4 +1,3 @@
-
 /**
  * Styling utilities for document export
  */
@@ -15,7 +14,7 @@ import {
   HeadingLevel,
   ImageRun
 } from 'docx';
-import { Officer } from '../../types/report';
+import type { Officer } from '../../types/report';
 
 export const FONTS = {
   TIMES_NEW_ROMAN: 'Times New Roman'
@@ -479,7 +478,7 @@ export const createOfficersDataTable = (officers: Officer[]) => {
 /**
  * Create image table with border for document
  */
-export const createImageTable = (imageData: Uint8Array, caption: string) => {
+export const createImageTable = (imageData: ArrayBuffer, caption: string) => {
   return new Table({
     width: {
       size: 90,
@@ -511,11 +510,12 @@ export const createImageTable = (imageData: Uint8Array, caption: string) => {
                 },
                 children: [
                   new ImageRun({
-                    data: imageData,
+                    data: new Uint8Array(imageData),
                     transformation: {
                       width: 400,
                       height: 300,
-                    }
+                    },
+                    type: 'png'
                   })
                 ],
               }),
