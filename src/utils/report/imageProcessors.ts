@@ -2,7 +2,7 @@
 import { Paragraph, ImageRun, AlignmentType, Table } from "docx";
 import { ReportData } from "../../types/report";
 import { processImageForDocx } from "./imageProcessing";
-import { createImageTable } from "./styleUtils";
+import { createImageTable } from "./styles/tableStyles";
 
 /**
  * Process all images for the document
@@ -14,10 +14,10 @@ export async function processImagesForDocument(reportData: ReportData): Promise<
       new Paragraph({
         alignment: AlignmentType.JUSTIFIED,
         children: [
-          {
+          new TextRun({
             text: "Sem imagens relevantes",
             italics: true,
-          },
+          }),
         ],
       }),
     ];
@@ -50,7 +50,7 @@ export async function processImagesForDocument(reportData: ReportData): Promise<
       imageElements.push(
         new Paragraph({
           spacing: { after: 240 },
-          children: [{ text: "" }],
+          children: [new TextRun({ text: "" })],
         })
       );
       
@@ -60,10 +60,10 @@ export async function processImagesForDocument(reportData: ReportData): Promise<
       imageElements.push(
         new Paragraph({
           children: [
-            {
+            new TextRun({
               text: `[Erro ao processar imagem ${index + 1}]`,
               italics: true,
-            },
+            }),
           ],
         })
       );

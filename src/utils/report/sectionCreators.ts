@@ -4,16 +4,12 @@ import {
   TextRun, 
   AlignmentType,
   Table,
-  ImageRun,
-  TabStopPosition,
-  TabStopType
+  ImageRun
 } from "docx";
 import { ReportData } from "../../types/report";
 import { formatDate, formatDateTime } from "./dateFormatters";
 import { getIntroductoryText, getObservationsText } from "./textGenerators";
-import { processImageForDocx } from "./imageProcessing";
-import { getEmblems } from "./emblems";
-import {
+import { 
   getHeading1Style,
   getHeading2Style,
   getNormalStyle,
@@ -22,10 +18,8 @@ import {
   FONTS,
   createDataTable,
   createOfficersDataTable,
-  createInstitutionalHeader,
-  INDENTATION,
   createImageTable
-} from "./styleUtils";
+} from "./styles";
 
 /**
  * Creates the header and title sections of the document

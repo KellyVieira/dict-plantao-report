@@ -13,7 +13,13 @@ import {
   Table
 } from "docx";
 import { getEmblems } from "./emblems";
-import { MARGINS, SPACING, COLORS, getDocumentFooter, createInstitutionalHeader } from "./styleUtils";
+import { 
+  MARGINS, 
+  SPACING, 
+  COLORS, 
+  getDocumentFooter, 
+  createInstitutionalHeader 
+} from "./styles";
 
 /**
  * Get the document section with margins and styling for Word
