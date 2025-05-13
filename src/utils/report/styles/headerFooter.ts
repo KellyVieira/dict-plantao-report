@@ -71,8 +71,8 @@ export const createInstitutionalHeader = (brasaoEstadoGoias: Uint8Array, brasaoP
               ...['ESTADO DE GOIÁS', 
                  'SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA',
                  'POLÍCIA CIVIL',
-                 'DELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES DE CRIMES DE',
-                 'TRÂNSITO - DICT DE GOIÂNIA'].map(text => 
+                 'DELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES DE CRIMES',
+                 'DE TRÂNSITO - DICT DE GOIÂNIA'].map(text => 
                 new Paragraph({
                   alignment: AlignmentType.CENTER,
                   children: [
