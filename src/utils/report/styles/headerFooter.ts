@@ -11,7 +11,9 @@ import {
   AlignmentType,
   WidthType, 
   BorderStyle,
-  ImageRun
+  ImageRun,
+  TableLayoutType,
+  VerticalAlign
 } from 'docx';
 import { FONTS, COLORS } from './constants';
 
@@ -24,6 +26,7 @@ export const createInstitutionalHeader = (brasaoEstadoGoias: Uint8Array, brasaoP
       size: 100,
       type: WidthType.PERCENTAGE,
     },
+    layout: TableLayoutType.FIXED, // Fixed layout to prevent Auto-Fit
     borders: {
       top: { style: BorderStyle.NONE },
       bottom: { style: BorderStyle.NONE },
@@ -35,12 +38,13 @@ export const createInstitutionalHeader = (brasaoEstadoGoias: Uint8Array, brasaoP
     rows: [
       new TableRow({
         children: [
-          // Left column - Police coat of arms (swapped)
+          // Left column - Police coat of arms
           new TableCell({
             width: {
-              size: 15,
-              type: WidthType.PERCENTAGE,
+              size: 709, // 2.5 cm in twips (1 cm ≈ 283.5 twips)
+              type: WidthType.DXA,
             },
+            verticalAlign: VerticalAlign.CENTER,
             children: [
               new Paragraph({
                 alignment: AlignmentType.CENTER,
@@ -48,8 +52,8 @@ export const createInstitutionalHeader = (brasaoEstadoGoias: Uint8Array, brasaoP
                   new ImageRun({
                     data: brasaoPolicialCivil,
                     transformation: {
-                      width: 65,
-                      height: 65,
+                      width: 51, // ~1.8 cm (0.7 inches) in points
+                      height: 51,
                     },
                     altText: {
                       name: 'Brasão da Polícia Civil',
@@ -64,36 +68,34 @@ export const createInstitutionalHeader = (brasaoEstadoGoias: Uint8Array, brasaoP
           // Center column - Institutional info
           new TableCell({
             width: {
-              size: 70,
-              type: WidthType.PERCENTAGE,
+              size: 3402, // 12.0 cm in twips
+              type: WidthType.DXA,
             },
+            verticalAlign: VerticalAlign.TOP,
             children: [
-              ...['ESTADO DE GOIÁS', 
-                 'SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA',
-                 'POLÍCIA CIVIL',
-                 'DELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES DE CRIMES',
-                 'DE TRÂNSITO - DICT DE GOIÂNIA'].map(text => 
-                new Paragraph({
-                  alignment: AlignmentType.CENTER,
-                  children: [
-                    new TextRun({
-                      text,
-                      bold: true,
-                      size: 20, // 10pt
-                      font: FONTS.TIMES_NEW_ROMAN,
-                      color: COLORS.BLACK
-                    }),
-                  ],
-                })
-              ),
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { line: 240 },
+                children: [
+                  new TextRun({
+                    text: "ESTADO DE GOIÁS\nSECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA\nPOLÍCIA CIVIL\nDELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES DE CRIMES\nDE TRÂNSITO - DICT DE GOIÂNIA",
+                    break: 1,
+                    bold: true,
+                    size: 20, // 10pt
+                    font: FONTS.TIMES_NEW_ROMAN,
+                    color: COLORS.BLACK
+                  }),
+                ],
+              }),
             ],
           }),
-          // Right column - State coat of arms (swapped)
+          // Right column - State coat of arms
           new TableCell({
             width: {
-              size: 15,
-              type: WidthType.PERCENTAGE,
+              size: 709, // 2.5 cm in twips
+              type: WidthType.DXA,
             },
+            verticalAlign: VerticalAlign.CENTER,
             children: [
               new Paragraph({
                 alignment: AlignmentType.CENTER,
@@ -101,8 +103,8 @@ export const createInstitutionalHeader = (brasaoEstadoGoias: Uint8Array, brasaoP
                   new ImageRun({
                     data: brasaoEstadoGoias,
                     transformation: {
-                      width: 65,
-                      height: 65,
+                      width: 51, // ~1.8 cm (0.7 inches) in points
+                      height: 51,
                     },
                     altText: {
                       name: 'Brasão de Goiás',
