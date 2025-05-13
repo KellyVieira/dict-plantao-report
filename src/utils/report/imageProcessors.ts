@@ -1,5 +1,5 @@
 
-import { Paragraph, ImageRun, AlignmentType, Table } from "docx";
+import { Paragraph, ImageRun, AlignmentType, Table, TextRun } from "docx";
 import { ReportData } from "../../types/report";
 import { processImageForDocx } from "./imageProcessing";
 import { createImageTable } from "./styles/tableStyles";
