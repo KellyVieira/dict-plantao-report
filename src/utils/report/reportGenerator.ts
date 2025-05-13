@@ -71,6 +71,14 @@ export function generateFullReportHTML(reportData: ReportData): string {
           text-align: justify;
         }
         
+        .intro-paragraph {
+          text-indent: 2cm;
+        }
+        
+        .observation-paragraph {
+          text-indent: 2cm;
+        }
+        
         table {
           width: 100%;
           border-collapse: collapse;
@@ -107,7 +115,7 @@ export function generateFullReportHTML(reportData: ReportData): string {
         <p class="date">${formatDate(reportData.reportDate)}</p>
         
         <div class="section">
-          <p style="line-height: 1.5;">${getIntroductoryText(reportData)}</p>
+          <p class="intro-paragraph" style="text-indent: 2cm; text-align: justify;">${getIntroductoryText(reportData)}</p>
         </div>
         
         <div class="section">
@@ -118,7 +126,7 @@ export function generateFullReportHTML(reportData: ReportData): string {
           <h2>1. Resumo das Ocorrências</h2>
           ${reportData.hasOccurrences 
             ? getOccurrencesTable(reportData.occurrences)
-            : "<p><em>Não houve ocorrências durante o plantão.</em></p>"
+            : "<p style='text-align: justify;'><em>Não houve ocorrências durante o plantão.</em></p>"
           }
         </div>
         
@@ -129,12 +137,12 @@ export function generateFullReportHTML(reportData: ReportData): string {
         
         <div class="section">
           <h2>3. Observações e Recomendações</h2>
-          <p>${getObservationsText(reportData.observations)}</p>
+          <p class="observation-paragraph" style="text-indent: 2cm; text-align: justify;">${getObservationsText(reportData.observations)}</p>
         </div>
         
         <div class="section">
           <h2>4. Conclusão</h2>
-          <p>Esta equipe finaliza o presente relatório, permanecendo à disposição para eventuais esclarecimentos.</p>
+          <p class="observation-paragraph" style="text-indent: 2cm; text-align: justify;">Esta equipe finaliza o presente relatório, permanecendo à disposição para eventuais esclarecimentos.</p>
         </div>
         
         <div class="section">

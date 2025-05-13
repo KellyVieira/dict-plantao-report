@@ -15,6 +15,7 @@ import {
   HeadingLevel,
   ImageRun
 } from 'docx';
+import { Officer } from '../../types/report';
 
 export const FONTS = {
   TIMES_NEW_ROMAN: 'Times New Roman'
@@ -37,7 +38,8 @@ export const SPACING = {
   BEFORE: {
     STANDARD: 120, // 6pt
     HEADING: 240,  // 12pt
-    SMALL: 60      // 3pt
+    SMALL: 60,     // 3pt
+    DOUBLE: 480    // 24pt
   },
   AFTER: {
     STANDARD: 120, // 6pt
@@ -47,6 +49,10 @@ export const SPACING = {
   SECTION: {
     DOUBLE: 480    // 24pt - for between main sections
   }
+};
+
+export const INDENTATION = {
+  FIRST_LINE: 567 // 2cm in twips (567 = approximately 2cm)
 };
 
 export const MARGINS = {
@@ -142,6 +148,31 @@ export const getNormalStyle = (text: string, options: { italics?: boolean } = {}
 };
 
 /**
+ * Style for paragraphs with first line indentation
+ */
+export const getFirstLineIndentStyle = (text: string, options: { italics?: boolean } = {}) => {
+  return new Paragraph({
+    alignment: AlignmentType.JUSTIFIED,
+    spacing: {
+      before: SPACING.BEFORE.STANDARD,
+      after: SPACING.AFTER.STANDARD,
+      line: SPACING.LINE.ONE_HALF
+    },
+    indent: {
+      firstLine: INDENTATION.FIRST_LINE
+    },
+    children: [
+      new TextRun({
+        text: text,
+        size: 24, // 12pt
+        font: FONTS.TIMES_NEW_ROMAN,
+        italics: options.italics
+      }),
+    ],
+  });
+};
+
+/**
  * Create table with institutional header
  */
 export const createInstitutionalHeader = (brasaoEstadoGoias: Uint8Array, brasaoPolicialCivil: Uint8Array) => {
@@ -161,7 +192,7 @@ export const createInstitutionalHeader = (brasaoEstadoGoias: Uint8Array, brasaoP
     rows: [
       new TableRow({
         children: [
-          // Left column - State coat of arms
+          // Left column - Police coat of arms (swapped)
           new TableCell({
             width: {
               size: 15,
@@ -172,14 +203,14 @@ export const createInstitutionalHeader = (brasaoEstadoGoias: Uint8Array, brasaoP
                 alignment: AlignmentType.CENTER,
                 children: [
                   new ImageRun({
-                    data: brasaoEstadoGoias,
+                    data: brasaoPolicialCivil,
                     transformation: {
                       width: 65,
                       height: 65,
                     },
                     altText: {
-                      name: 'Brasão de Goiás',
-                      description: 'Brasão do Estado de Goiás'
+                      name: 'Brasão da Polícia Civil',
+                      description: 'Brasão da Polícia Civil'
                     },
                     type: 'png'
                   }),
@@ -214,7 +245,7 @@ export const createInstitutionalHeader = (brasaoEstadoGoias: Uint8Array, brasaoP
               ),
             ],
           }),
-          // Right column - Police coat of arms
+          // Right column - State coat of arms (swapped)
           new TableCell({
             width: {
               size: 15,
@@ -225,14 +256,14 @@ export const createInstitutionalHeader = (brasaoEstadoGoias: Uint8Array, brasaoP
                 alignment: AlignmentType.CENTER,
                 children: [
                   new ImageRun({
-                    data: brasaoPolicialCivil,
+                    data: brasaoEstadoGoias,
                     transformation: {
                       width: 65,
                       height: 65,
                     },
                     altText: {
-                      name: 'Brasão da Polícia Civil',
-                      description: 'Brasão da Polícia Civil'
+                      name: 'Brasão de Goiás',
+                      description: 'Brasão do Estado de Goiás'
                     },
                     type: 'png'
                   }),
@@ -346,5 +377,182 @@ export const createDataTable = (rows: { label: string; value: string }[]) => {
         ],
       })
     ),
+  });
+};
+
+/**
+ * Create officers data table with separate lines for each officer
+ */
+export const createOfficersDataTable = (officers: Officer[]) => {
+  const officersContent = officers.map(officer => 
+    new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      spacing: {
+        before: 60,
+        after: 0,
+        line: SPACING.LINE.SINGLE
+      },
+      bullet: {
+        level: 0
+      },
+      children: [
+        new TextRun({
+          text: officer.name,
+          size: 24, // 12pt
+          font: FONTS.TIMES_NEW_ROMAN
+        }),
+        new TextRun({
+          text: "\n",
+          size: 24,
+          font: FONTS.TIMES_NEW_ROMAN
+        }),
+        new TextRun({
+          text: officer.role,
+          size: 24, // 12pt
+          font: FONTS.TIMES_NEW_ROMAN
+        })
+      ],
+    })
+  );
+
+  return new Table({
+    width: {
+      size: 100,
+      type: WidthType.PERCENTAGE,
+    },
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 1, color: COLORS.WHITE },
+      bottom: { style: BorderStyle.SINGLE, size: 1, color: COLORS.WHITE },
+      left: { style: BorderStyle.SINGLE, size: 1, color: COLORS.WHITE },
+      right: { style: BorderStyle.SINGLE, size: 1, color: COLORS.WHITE },
+      insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: COLORS.WHITE },
+      insideVertical: { style: BorderStyle.SINGLE, size: 1, color: COLORS.WHITE },
+    },
+    rows: [
+      new TableRow({
+        children: [
+          // Label cell
+          new TableCell({
+            width: {
+              size: 30,
+              type: WidthType.PERCENTAGE,
+            },
+            shading: {
+              fill: COLORS.LIGHT_GRAY,
+            },
+            children: [
+              new Paragraph({
+                spacing: {
+                  before: SPACING.BEFORE.SMALL,
+                  after: SPACING.AFTER.SMALL,
+                  line: SPACING.LINE.SINGLE
+                },
+                children: [
+                  new TextRun({
+                    text: "Policiais da Equipe",
+                    bold: true,
+                    size: 24, // 12pt
+                    font: FONTS.TIMES_NEW_ROMAN
+                  }),
+                ],
+              }),
+            ],
+            verticalAlign: 'top',
+          }),
+          // Value cell with list of officers
+          new TableCell({
+            width: {
+              size: 70,
+              type: WidthType.PERCENTAGE,
+            },
+            shading: {
+              fill: COLORS.VERY_LIGHT_GRAY,
+            },
+            children: officersContent,
+          }),
+        ],
+      })
+    ],
+  });
+};
+
+/**
+ * Create image table with border for document
+ */
+export const createImageTable = (imageData: Uint8Array, caption: string) => {
+  return new Table({
+    width: {
+      size: 90,
+      type: WidthType.PERCENTAGE,
+    },
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+      bottom: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+      left: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+      right: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+    },
+    rows: [
+      // Image row
+      new TableRow({
+        children: [
+          new TableCell({
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+              bottom: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+              left: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+              right: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+            },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: {
+                  before: 120,
+                  after: 120,
+                },
+                children: [
+                  new ImageRun({
+                    data: imageData,
+                    transformation: {
+                      width: 400,
+                      height: 300,
+                    }
+                  })
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+      // Caption row
+      new TableRow({
+        children: [
+          new TableCell({
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+              bottom: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+              left: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+              right: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
+            },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: {
+                  before: 120,
+                  after: 120,
+                },
+                children: [
+                  new TextRun({
+                    text: caption,
+                    italics: true,
+                    size: 24,
+                    font: FONTS.TIMES_NEW_ROMAN
+                  })
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+    ],
   });
 };

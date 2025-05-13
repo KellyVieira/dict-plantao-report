@@ -1,186 +1,69 @@
 
-import { 
-  Paragraph, 
-  TextRun, 
-  Table, 
-  TableRow, 
-  TableCell, 
-  BorderStyle,
-  WidthType,
-  AlignmentType,
-  ImageRun
-} from "docx";
+import { Paragraph, ImageRun, AlignmentType, Table } from "docx";
 import { ReportData } from "../../types/report";
 import { processImageForDocx } from "./imageProcessing";
-import { SPACING, COLORS, FONTS } from "./styleUtils";
+import { createImageTable } from "./styleUtils";
 
 /**
- * Process images and create image paragraphs
+ * Process all images for the document
  */
-export const processImagesForDocument = async (reportData: ReportData): Promise<(Paragraph | Table)[]> => {
-  const imageParagraphs: (Paragraph | Table)[] = [];
-
-  if (reportData.images.length > 0) {
-    try {
-      // Process all images
-      for (const [index, image] of reportData.images.entries()) {
-        try {
-          // Process the image
-          const processedImage = await processImageForDocx(
-            image.dataUrl,
-            image.description,
-            index
-          );
-          
-          // Create a table for the image and its description with visible borders
-          const imageTable = new Table({
-            width: {
-              size: 100,
-              type: WidthType.PERCENTAGE,
-            },
-            borders: {
-              top: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
-              bottom: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
-              left: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
-              right: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
-              insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
-              insideVertical: { style: BorderStyle.SINGLE, size: 1, color: COLORS.PAGE_BORDER },
-            },
-            rows: [
-              new TableRow({
-                children: [
-                  new TableCell({
-                    children: [
-                      new Paragraph({
-                        alignment: AlignmentType.CENTER,
-                        children: [
-                          new ImageRun({
-                            data: processedImage.imageData,
-                            transformation: {
-                              width: 400,
-                              height: 300,
-                            },
-                            altText: {
-                              name: processedImage.altText.name,
-                              description: processedImage.altText.description,
-                            },
-                            type: "png", 
-                          }),
-                        ],
-                      }),
-                    ],
-                  }),
-                ],
-              }),
-              // Description row
-              new TableRow({
-                children: [
-                  new TableCell({
-                    children: [
-                      new Paragraph({
-                        alignment: AlignmentType.CENTER,
-                        spacing: {
-                          before: SPACING.BEFORE.SMALL,
-                          after: SPACING.AFTER.SMALL,
-                        },
-                        children: [
-                          new TextRun({
-                            text: image.description || `Imagem ${index + 1}`,
-                            italics: true,
-                            size: 24,
-                            font: FONTS.TIMES_NEW_ROMAN
-                          }),
-                        ],
-                      }),
-                    ],
-                  }),
-                ],
-              }),
-            ],
-          });
-          
-          imageParagraphs.push(imageTable);
-          
-          // Add spacing after image table
-          imageParagraphs.push(
-            new Paragraph({ 
-              spacing: { after: SPACING.BEFORE.STANDARD },
-              children: [new TextRun({ text: "" })]
-            })
-          );
-          
-        } catch (imageError) {
-          console.error("Error processing image:", imageError);
-          // Add fallback text noting the error
-          imageParagraphs.push(
-            new Paragraph({
-              alignment: AlignmentType.JUSTIFIED,
-              spacing: {
-                before: SPACING.BEFORE.STANDARD,
-                after: SPACING.AFTER.STANDARD,
-                line: SPACING.LINE.ONE_HALF
-              },
-              children: [
-                new TextRun({
-                  text: `[Não foi possível incluir a imagem: ${image.description || "Sem descrição"}]`,
-                  italics: true,
-                  size: 24,
-                  font: FONTS.TIMES_NEW_ROMAN
-                }),
-              ],
-            })
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error processing images:", error);
-      imageParagraphs.push(
-        new Paragraph({
-          alignment: AlignmentType.JUSTIFIED,
-          spacing: {
-            before: SPACING.BEFORE.STANDARD,
-            after: SPACING.AFTER.STANDARD,
-            line: SPACING.LINE.ONE_HALF
+export async function processImagesForDocument(reportData: ReportData): Promise<(Paragraph | Table)[]> {
+  // If no images, return placeholder paragraph
+  if (!reportData.images || reportData.images.length === 0) {
+    return [
+      new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        children: [
+          {
+            text: "Sem imagens relevantes",
+            italics: true,
           },
+        ],
+      }),
+    ];
+  }
+
+  // Create array to store processed image elements
+  const imageElements: (Paragraph | Table)[] = [];
+  
+  // Process each image
+  for (const [index, image] of reportData.images.entries()) {
+    try {
+      // Process the image from data URL to docx format
+      const imageData = await processImageForDocx(image.dataUrl);
+      if (!imageData) continue;
+      
+      // Create a bordered table for the image with proper centering
+      const imageTable = createImageTable(
+        imageData,
+        image.description || `Imagem ${index + 1}`
+      );
+      
+      imageElements.push(imageTable);
+      
+      // Add spacing after each image
+      imageElements.push(
+        new Paragraph({
+          spacing: { after: 240 },
+          children: [{ text: "" }],
+        })
+      );
+      
+    } catch (error) {
+      console.error(`Error processing image ${index}:`, error);
+      // Add error placeholder
+      imageElements.push(
+        new Paragraph({
           children: [
-            new TextRun({
-              text: "[Erro ao processar imagens]",
+            {
+              text: `[Erro ao processar imagem ${index + 1}]`,
               italics: true,
-              size: 24,
-              font: FONTS.TIMES_NEW_ROMAN
-            }),
+            },
           ],
         })
       );
     }
-  } else {
-    imageParagraphs.push(
-      new Paragraph({
-        alignment: AlignmentType.JUSTIFIED,
-        spacing: {
-          before: SPACING.BEFORE.STANDARD,
-          after: SPACING.AFTER.STANDARD,
-          line: SPACING.LINE.ONE_HALF
-        },
-        children: [
-          new TextRun({
-            text: "Sem imagens relevantes",
-            italics: true,
-            size: 24,
-            font: FONTS.TIMES_NEW_ROMAN
-          }),
-        ],
-      })
-    );
   }
-  
-  // Add spacing after the images section
-  imageParagraphs.push(
-    new Paragraph({
-      spacing: { after: SPACING.SECTION.DOUBLE },
-      children: [new TextRun({ text: "" })]
-    })
-  );
 
-  return imageParagraphs;
-};
+  return imageElements;
+}

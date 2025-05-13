@@ -43,7 +43,7 @@ export function getImagesHTML(reportData: ReportData): string {
     <table border="1" cellspacing="0" cellpadding="8" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border-color: #D3D3D3;">
       <tr>
         <td style="text-align: center;">
-          <img src="${image.dataUrl}" alt="Imagem ${index + 1}" style="max-width: 100%; max-height: 300px;" />
+          <img src="${image.dataUrl}" alt="Imagem ${index + 1}" style="max-width: 100%; max-height: 300px; margin: 0 auto; display: block;" />
         </td>
       </tr>
       <tr>
@@ -80,7 +80,9 @@ export function getGeneralDataTable(reportData: ReportData): string {
     <tr>
       <td style="background-color: #f2f2f2; font-weight: bold; width: 30%; vertical-align: top;">Policiais da Equipe</td>
       <td style="background-color: #f9f9f9; width: 70%;">
-        ${reportData.officers.map(officer => `${officer.name} - ${officer.role}`).join('<br>')}
+        <ul style="list-style-type: disc; margin: 0; padding-left: 20px;">
+          ${reportData.officers.map(officer => `<li>${officer.name}<br>${officer.role}</li>`).join('')}
+        </ul>
       </td>
     </tr>
   </table>
@@ -92,7 +94,7 @@ export function getSignatureBlocks(reportData: ReportData): string {
     <div style="margin-top: 30px; text-align: center;">
       <div style="width: 200px; margin: 0 auto;">
         <div style="width: 100%; border-top: 1px solid black;"></div>
-        <p style="margin: 5px 0; font-family: 'Times New Roman', Times, serif;">${officer.name} - ${officer.role}</p>
+        <p style="margin: 5px 0; font-family: 'Times New Roman', Times, serif;">${officer.name}<br>${officer.role}</p>
       </div>
     </div>
   `).join('');
@@ -105,7 +107,7 @@ export const getInstitutionalHeader = (): string => {
   return `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24pt;">
       <div style="width: 15%; text-align: center;">
-        <img src="/lovable-uploads/81c65d63-622f-4659-9e6e-325660565994.png" alt="Brasão de Goiás" style="width: 65px; height: 65px;" />
+        <img src="/lovable-uploads/40f0ded4-d89b-4ec7-847e-a35119ee6181.png" alt="Brasão da Polícia Civil" style="width: 65px; height: 65px;" />
       </div>
       <div style="width: 70%; text-align: center;">
         <p style="margin: 0; font-weight: bold; font-size: 10pt;">ESTADO DE GOIÁS</p>
@@ -115,7 +117,7 @@ export const getInstitutionalHeader = (): string => {
         <p style="margin: 0; font-weight: bold; font-size: 10pt;">TRÂNSITO - DICT DE GOIÂNIA</p>
       </div>
       <div style="width: 15%; text-align: center;">
-        <img src="/lovable-uploads/40f0ded4-d89b-4ec7-847e-a35119ee6181.png" alt="Brasão da Polícia Civil" style="width: 65px; height: 65px;" />
+        <img src="/lovable-uploads/81c65d63-622f-4659-9e6e-325660565994.png" alt="Brasão de Goiás" style="width: 65px; height: 65px;" />
       </div>
     </div>
   `;

@@ -4,7 +4,9 @@ import {
   TextRun, 
   AlignmentType,
   Table,
-  ImageRun
+  ImageRun,
+  TabStopPosition,
+  TabStopType
 } from "docx";
 import { ReportData } from "../../types/report";
 import { formatDate, formatDateTime } from "./dateFormatters";
@@ -15,10 +17,14 @@ import {
   getHeading1Style,
   getHeading2Style,
   getNormalStyle,
+  getFirstLineIndentStyle,
   SPACING,
   FONTS,
   createDataTable,
-  createInstitutionalHeader
+  createOfficersDataTable,
+  createInstitutionalHeader,
+  INDENTATION,
+  createImageTable
 } from "./styleUtils";
 
 /**
@@ -26,6 +32,12 @@ import {
  */
 export const createHeaderSection = (reportData: ReportData): Paragraph[] => {
   return [
+    // Add double spacing before title
+    new Paragraph({
+      spacing: { before: SPACING.BEFORE.DOUBLE, after: 0 },
+      children: [new TextRun({ text: "" })]
+    }),
+    
     // Title and header
     getHeading1Style(`RELATÓRIO DE PLANTÃO ${reportData.reportNumber || ""}`),
     
@@ -65,21 +77,33 @@ export const createIntroductionSection = (reportData: ReportData): (Paragraph | 
     { label: "Cartório Responsável", value: reportData.responsibleOffice }
   ]);
   
-  // Create officers list text
-  const officersText = reportData.officers
-    .map(officer => `${officer.name} - ${officer.role}`)
-    .join("\n");
-  
-  const officersTable = createDataTable([
-    { label: "Policiais da Equipe", value: officersText }
-  ]);
+  // Create officers table with officers displayed on separate lines
+  const officersTable = createOfficersDataTable(reportData.officers);
 
   return [
-    // Introduction text
-    getNormalStyle(getIntroductoryText(reportData).replace(/<[^>]*>/g, '')),
+    // Spacing before table
+    new Paragraph({
+      spacing: { before: SPACING.BEFORE.STANDARD, after: 0 },
+      children: [new TextRun({ text: "" })]
+    }),
+    
+    // Introduction text with first line indent
+    getFirstLineIndentStyle(getIntroductoryText(reportData).replace(/<[^>]*>/g, '')),
+    
+    // Spacing before table
+    new Paragraph({
+      spacing: { before: SPACING.BEFORE.STANDARD, after: 0 },
+      children: [new TextRun({ text: "" })]
+    }),
     
     // Add metadata table 
     metadataTable,
+    
+    // Spacing after table
+    new Paragraph({
+      spacing: { before: SPACING.BEFORE.STANDARD, after: 0 },
+      children: [new TextRun({ text: "" })]
+    }),
     
     // Add officers table
     officersTable,
@@ -129,6 +153,14 @@ export const createOccurrencesSection = (reportData: ReportData): (Paragraph | T
     const occurrencesParagraphs: (Paragraph | Table)[] = [];
     
     reportData.occurrences.forEach(occurrence => {
+      // Spacing before table
+      occurrencesParagraphs.push(
+        new Paragraph({
+          spacing: { before: SPACING.BEFORE.STANDARD, after: 0 },
+          children: [new TextRun({ text: "" })]
+        })
+      );
+      
       // Create a data table for each occurrence
       const occurrenceTable = createDataTable([
         { label: "Número do RAI", value: occurrence.raiNumber },
@@ -139,10 +171,10 @@ export const createOccurrencesSection = (reportData: ReportData): (Paragraph | T
       
       occurrencesParagraphs.push(occurrenceTable);
       
-      // Add spacing between occurrences
+      // Spacing after table
       occurrencesParagraphs.push(
         new Paragraph({
-          spacing: { after: SPACING.BEFORE.STANDARD },
+          spacing: { before: SPACING.BEFORE.STANDARD, after: 0 },
           children: [new TextRun({ text: "" })]
         })
       );
@@ -186,7 +218,7 @@ export const createConclusionSection = (reportData: ReportData): Paragraph[] => 
   return [
     // Observations section
     getHeading2Style("3. Observações e Recomendações"),
-    getNormalStyle(getObservationsText(reportData.observations)),
+    getFirstLineIndentStyle(getObservationsText(reportData.observations)),
     
     // Spacing between subsections
     new Paragraph({
@@ -196,7 +228,7 @@ export const createConclusionSection = (reportData: ReportData): Paragraph[] => 
     
     // Conclusion
     getHeading2Style("4. Conclusão"),
-    getNormalStyle("Esta equipe finaliza o presente relatório, permanecendo à disposição para eventuais esclarecimentos."),
+    getFirstLineIndentStyle("Esta equipe finaliza o presente relatório, permanecendo à disposição para eventuais esclarecimentos."),
     
     // Spacing after section
     new Paragraph({
@@ -225,6 +257,7 @@ export const createSignaturesSection = (reportData: ReportData): Paragraph[] => 
     }),
     new Paragraph({ 
       spacing: { after: 0 },
+      alignment: AlignmentType.CENTER,
       children: [new TextRun({ 
         text: "__________________________", 
         font: FONTS.TIMES_NEW_ROMAN,
@@ -232,10 +265,22 @@ export const createSignaturesSection = (reportData: ReportData): Paragraph[] => 
       })]
     }),
     new Paragraph({ 
-      spacing: { after: SPACING.AFTER.STANDARD },
+      spacing: { after: 0 },
+      alignment: AlignmentType.CENTER,
       children: [
         new TextRun({ 
-          text: `${officer.name} - ${officer.role}`,
+          text: `${officer.name}`,
+          font: FONTS.TIMES_NEW_ROMAN,
+          size: 24
+        })
+      ] 
+    }),
+    new Paragraph({ 
+      spacing: { after: SPACING.AFTER.STANDARD },
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({ 
+          text: `${officer.role}`,
           font: FONTS.TIMES_NEW_ROMAN,
           size: 24
         })
