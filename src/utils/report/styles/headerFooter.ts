@@ -75,13 +75,64 @@ export const createInstitutionalHeader = (brasaoEstadoGoias: Uint8Array, brasaoP
             children: [
               new Paragraph({
                 alignment: AlignmentType.CENTER,
+                spacing: { line: 240 }, // Single line spacing
+                children: [
+                  new TextRun({
+                    text: "ESTADO DE GOIÁS",
+                    bold: true,
+                    size: 20, // 10pt
+                    font: FONTS.TIMES_NEW_ROMAN,
+                    color: COLORS.BLACK
+                  }),
+                ],
+              }),
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
                 spacing: { line: 240 },
                 children: [
                   new TextRun({
-                    text: "ESTADO DE GOIÁS\nSECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA\nPOLÍCIA CIVIL\nDELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES\nDE CRIMES DE TRÂNSITO - DICT DE GOIÂNIA",
-                    break: 1,
+                    text: "SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA",
                     bold: true,
-                    size: 20, // 10pt
+                    size: 20,
+                    font: FONTS.TIMES_NEW_ROMAN,
+                    color: COLORS.BLACK
+                  }),
+                ],
+              }),
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { line: 240 },
+                children: [
+                  new TextRun({
+                    text: "POLÍCIA CIVIL",
+                    bold: true,
+                    size: 20,
+                    font: FONTS.TIMES_NEW_ROMAN,
+                    color: COLORS.BLACK
+                  }),
+                ],
+              }),
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { line: 240 },
+                children: [
+                  new TextRun({
+                    text: "DELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES",
+                    bold: true,
+                    size: 20,
+                    font: FONTS.TIMES_NEW_ROMAN,
+                    color: COLORS.BLACK
+                  }),
+                ],
+              }),
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { line: 240 },
+                children: [
+                  new TextRun({
+                    text: "DE CRIMES DE TRÂNSITO - DICT DE GOIÂNIA",
+                    bold: true,
+                    size: 20,
                     font: FONTS.TIMES_NEW_ROMAN,
                     color: COLORS.BLACK
                   }),
