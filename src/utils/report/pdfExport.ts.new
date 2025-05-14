@@ -1,0 +1,202 @@
+import { ReportData } from "../../types/report";
+import { toast } from "sonner";
+import { formatDateTime, formatDate } from "./dateFormatters";
+import { base64ToBlob } from "./imageProcessing";
+
+/**
+ * Exporta o relatório diretamente para PDF usando jsPDF
+ */
+export async function exportReportToPdf(reportData: ReportData): Promise<void> {
+  try {
+    // Nome do arquivo
+    const fileName = `Relatório_Plantão_${reportData.reportNumber || "DICT"}.pdf`;
+    
+    // Importar jsPDF dinamicamente
+    const jspdfModule = await import("jspdf");
+    const jsPDF = jspdfModule.default;
+    
+    // Importar autoTable para melhorar as tabelas
+    const autoTableModule = await import("jspdf-autotable");
+    const autoTable = autoTableModule.default;
+    
+    // Criar instância de PDF
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4"
+    });
+    
+    // Configurar fontes
+    pdf.setFont("helvetica");
+    
+    // Adicionar cabeçalho
+    pdf.setFontSize(16);
+    pdf.text("POLÍCIA CIVIL DO ESTADO DE GOIÁS", 105, 20, { align: "center" });
+    pdf.text("DELEGACIA DE INVESTIGAÇÃO DE CRIMES DE TRÂNSITO", 105, 28, { align: "center" });
+    pdf.text("RELATÓRIO DE PLANTÃO", 105, 36, { align: "center" });
+    
+    // Adicionar linha horizontal
+    pdf.setDrawColor(0);
+    pdf.setLineWidth(0.5);
+    pdf.line(20, 40, 190, 40);
+    
+    // Informações do relatório
+    pdf.setFontSize(12);
+    pdf.text(`Relatório Nº: ${reportData.reportNumber || "N/A"}`, 20, 50);
+    
+    // Usar o nome do primeiro policial como oficial responsável se disponível
+    const officerName = reportData.officers && reportData.officers.length > 0 
+      ? reportData.officers[0].name 
+      : "N/A";
+    
+    pdf.text(`Plantonista: ${officerName}`, 20, 58);
+    pdf.text(`Data: ${formatDate(reportData.reportDate) || "N/A"}`, 20, 66);
+    pdf.text(`Horário: ${formatDateTime(reportData.startDateTime) || "N/A"} - ${formatDateTime(reportData.endDateTime) || "N/A"}`, 20, 74);
+    
+    // Título da seção de ocorrências
+    pdf.setFontSize(14);
+    pdf.text("OCORRÊNCIAS REGISTRADAS:", 20, 90);
+    
+    // Conteúdo das ocorrências
+    pdf.setFontSize(12);
+    
+    let yPos = 100; // Posição inicial para ocorrências
+    
+    if (reportData.hasOccurrences && reportData.occurrences && reportData.occurrences.length > 0) {
+      // Iterar sobre cada ocorrência e adicionar ao PDF
+      for (let i = 0; i < reportData.occurrences.length; i++) {
+        const occurrence = reportData.occurrences[i];
+        
+        pdf.text(`Ocorrência ${i + 1}: RAI ${occurrence.raiNumber}`, 20, yPos);
+        yPos += 8;
+        
+        pdf.text(`Natureza: ${occurrence.nature}`, 25, yPos);
+        yPos += 8;
+        
+        pdf.text("Resumo:", 25, yPos);
+        yPos += 8;
+        
+        // Quebrar texto longo em múltiplas linhas
+        const summaryText = occurrence.summary || "";
+        const splitSummary = pdf.splitTextToSize(summaryText, 160);
+        
+        pdf.text(splitSummary, 30, yPos);
+        yPos += (splitSummary.length * 7); // Ajustar posição Y com base no número de linhas
+        
+        pdf.text(`Cartório Responsável: ${occurrence.responsibleOffice}`, 25, yPos);
+        yPos += 15; // Espaço entre ocorrências
+        
+        // Verificar se precisamos de uma nova página
+        if (yPos > 250) {
+          pdf.addPage();
+          yPos = 20;
+        }
+      }
+    } else {
+      pdf.text("Nenhuma ocorrência registrada.", 20, yPos);
+      yPos += 15;
+    }
+    
+    // Adicionar imagens se disponíveis
+    if (reportData.images && reportData.images.length > 0) {
+      // Adicionar nova página para imagens
+      pdf.addPage();
+      yPos = 20;
+      
+      pdf.setFontSize(14);
+      pdf.text("IMAGENS RELEVANTES:", 20, yPos);
+      yPos += 15;
+      
+      // Iterar sobre cada imagem
+      for (let i = 0; i < reportData.images.length; i++) {
+        const image = reportData.images[i];
+        
+        try {
+          // Adicionar legenda
+          pdf.setFontSize(10);
+          pdf.text(`Imagem ${i + 1}: ${image.description || "Sem descrição"}`, 20, yPos);
+          yPos += 8;
+          
+          // Adicionar imagem
+          // Nota: isso pode falhar em alguns navegadores devido a limitações de Cross-Origin
+          // Em ambiente de produção, considere usar uma biblioteca como html2canvas
+          pdf.addImage(image.dataUrl, 'JPEG', 20, yPos, 170, 80);
+          yPos += 90; // Espaço após a imagem
+          
+          // Verificar se precisamos de uma nova página
+          if (yPos > 250 && i < reportData.images.length - 1) {
+            pdf.addPage();
+            yPos = 20;
+          }
+        } catch (imageError) {
+          console.error("Erro ao adicionar imagem:", imageError);
+          pdf.text(`[Erro ao processar imagem ${i + 1}]`, 20, yPos);
+          yPos += 10;
+        }
+      }
+    }
+    
+    // Adicionar observações
+    pdf.addPage();
+    yPos = 20;
+    
+    pdf.setFontSize(14);
+    pdf.text("OBSERVAÇÕES:", 20, yPos);
+    yPos += 15;
+    
+    pdf.setFontSize(12);
+    if (reportData.observations && reportData.observations.trim()) {
+      const notesText = reportData.observations.trim();
+      const splitNotes = pdf.splitTextToSize(notesText, 170);
+      pdf.text(splitNotes, 20, yPos);
+      
+      yPos += (splitNotes.length * 7) + 20; // Ajustar posição Y baseado em número de linhas
+    } else {
+      pdf.text("Sem observações adicionais.", 20, yPos);
+      yPos += 15;
+    }
+    
+    // Adicionar linha para assinatura na última página
+    const signatureY = Math.min(yPos + 20, pdf.internal.pageSize.height - 60);
+    
+    // Adicionar assinaturas para cada policial
+    if (reportData.officers && reportData.officers.length > 0) {
+      let currentSignatureY = signatureY;
+      
+      for (let i = 0; i < reportData.officers.length; i++) {
+        const officer = reportData.officers[i];
+        const signatureWidth = 80;
+        const signatureX = (pdf.internal.pageSize.width / 2) - (signatureWidth / 2);
+        
+        pdf.line(signatureX, currentSignatureY, signatureX + signatureWidth, currentSignatureY);
+        pdf.text(officer.name, pdf.internal.pageSize.width / 2, currentSignatureY + 8, { align: "center" });
+        pdf.text(officer.role, pdf.internal.pageSize.width / 2, currentSignatureY + 15, { align: "center" });
+        
+        currentSignatureY += 30; // Espaço entre assinaturas
+        
+        // Se precisar de mais espaço para assinaturas, adicionar nova página
+        if (currentSignatureY > pdf.internal.pageSize.height - 30 && i < reportData.officers.length - 1) {
+          pdf.addPage();
+          currentSignatureY = 30;
+        }
+      }
+      
+      // Adicionar data da assinatura
+      pdf.text(`Goiânia, ${formatDate(reportData.reportDate)}`, pdf.internal.pageSize.width / 2, currentSignatureY + 10, { align: "center" });
+    } else {
+      // Assinatura genérica se não houver policiais definidos
+      pdf.line(65, signatureY, 145, signatureY);
+      pdf.text("Agente de Polícia", pdf.internal.pageSize.width / 2, signatureY + 15, { align: "center" });
+      pdf.text(`Goiânia, ${formatDate(reportData.reportDate)}`, pdf.internal.pageSize.width / 2, signatureY + 25, { align: "center" });
+    }
+    
+    // Salvar o PDF
+    pdf.save(fileName);
+    
+    // Mostrar mensagem de sucesso
+    toast.success("Relatório exportado com sucesso como PDF");
+  } catch (error) {
+    console.error("Erro na exportação para PDF:", error);
+    toast.error("Erro ao exportar o relatório como PDF. Tente novamente.");
+  }
+}
