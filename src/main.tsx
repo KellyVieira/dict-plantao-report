@@ -11,3 +11,12 @@ if (rootElement) {
 } else {
   console.error("Elemento root não encontrado no DOM!");
 }
+
+// Register service worker for PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(error => {
+      console.error('Service Worker registration failed:', error);
+    });
+  });
+}
