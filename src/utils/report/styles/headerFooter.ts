@@ -78,7 +78,7 @@ export const createInstitutionalHeader = (brasaoEstadoGoias: Uint8Array, brasaoP
                 spacing: { line: 240 },
                 children: [
                   new TextRun({
-                    text: "ESTADO DE GOIÁS\nSECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA\nPOLÍCIA CIVIL\nDELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES DE CRIMES\nDE TRÂNSITO - DICT DE GOIÂNIA",
+                    text: "ESTADO DE GOIÁS\nSECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA\nPOLÍCIA CIVIL\nDELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES\nDE CRIMES DE TRÂNSITO - DICT DE GOIÂNIA",
                     break: 1,
                     bold: true,
                     size: 20, // 10pt
