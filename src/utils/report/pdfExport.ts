@@ -1,211 +1,113 @@
 import { saveAs } from "file-saver";
-import { exportReportToWord } from "./docxExport";
 import { ReportData } from "../../types/report";
-import { Document, Packer } from "docx";
 import { toast } from "sonner";
-// Note: jsPDF is imported dynamically in the function to avoid SSR issues
 
 /**
- * Convert docx blob to PDF and download
- * This function uses docx-to-pdf conversion
+ * Exporta o relatório diretamente para PDF usando jsPDF
+ * Abordagem mais simples e direta para evitar problemas no Vercel
  */
 export async function exportReportToPdf(reportData: ReportData): Promise<void> {
   try {
-    // Create a hidden link that will trigger the docx generation but intercept the blob
-    const tempLink = document.createElement("a");
-    let docxBlob: Blob | null = null;
-    
-    // Override saveAs function temporarily to capture the blob
-    const originalSaveAs = saveAs;
-    (window as any).saveAs = (blob: Blob, filename: string) => {
-      docxBlob = blob;
-      // Don't actually save the file
-    };
-    
-    // Generate the DOCX file (this will call our overridden saveAs)
-    await exportReportToWord(reportData);
-    
-    // Restore original saveAs function
-    (window as any).saveAs = originalSaveAs;
-    
-    if (!docxBlob) {
-      throw new Error("Failed to generate DOCX file");
-    }
-    
-    // Convert DOCX to PDF using PDF.js
+    // Nome do arquivo
     const fileName = `Relatório_Plantão_${reportData.reportNumber || "DICT"}.pdf`;
     
-    // Use the HTML5 FileReader API to read the docx blob
-    const reader = new FileReader();
-    reader.onload = async function() {
-      try {
-        // Here we create a unique approach using canvas to render
-        // We need to use external PDF rendering libraries in production,
-        // but for this demonstration, we're creating a basic PDF
+    // Importar jsPDF dinamicamente
+    const jspdfModule = await import('jspdf');
+    const jsPDF = jspdfModule.default;
+    
+    // Criar instância de PDF
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+    
+    // Configurar fontes
+    pdf.setFont("helvetica");
+    
+    // Adicionar cabeçalho
+    pdf.setFontSize(16);
+    pdf.text("POLÍCIA CIVIL DO ESTADO DE GOIÁS", 105, 20, { align: "center" });
+    pdf.text("DELEGACIA DE INVESTIGAÇÃO DE CRIMES DE TRÂNSITO", 105, 28, { align: "center" });
+    pdf.text("RELATÓRIO DE PLANTÃO", 105, 36, { align: "center" });
+    
+    // Adicionar linha horizontal
+    pdf.setDrawColor(0);
+    pdf.setLineWidth(0.5);
+    pdf.line(20, 40, 190, 40);
+    
+    // Informações do relatório
+    pdf.setFontSize(12);
+    pdf.text(`Relatório Nº: ${reportData.reportNumber || "N/A"}`, 20, 50);
+    pdf.text(`Plantonista: ${reportData.officerName || "N/A"}`, 20, 58);
+    pdf.text(`Data: ${reportData.date || "N/A"}`, 20, 66);
+    pdf.text(`Horário: ${reportData.time || "N/A"}`, 20, 74);
+    
+    // Título da seção de ocorrências
+    pdf.setFontSize(14);
+    pdf.text("OCORRÊNCIAS REGISTRADAS:", 20, 90);
+    
+    // Conteúdo das ocorrências
+    pdf.setFontSize(12);
+    
+    if (reportData.occurrences && reportData.occurrences.trim()) {
+      // Quebrar texto longo em múltiplas linhas
+      const occurrencesText = reportData.occurrences.trim();
+      const splitText = pdf.splitTextToSize(occurrencesText, 170);
+      
+      // Verificar se precisamos de múltiplas páginas
+      if (splitText.length > 30) {
+        let currentPage = 1;
+        let linesPerPage = 35;
+        let totalPages = Math.ceil(splitText.length / linesPerPage);
         
-        // Define options for the PDF creation
-        const options = {
-          margin: 10,
-          filename: fileName,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2 },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-        
-        // Convert DOCX to PDF
-        // Note: In production, you would use a proper DOCX to PDF converter
-        // This is a simplified version that creates a PDF with a notice
-        
-        try {
-          // Importando bibliotecas dinamicamente para evitar problemas de SSR
-          const { default: html2canvas } = await import('html2canvas');
-          const { default: { jsPDF } } = await import('jspdf');
-          
-          // Criamos um elemento HTML temporário para renderizar uma prévia do relatório
-          const tempContainer = document.createElement('div');
-          tempContainer.className = 'temp-report-preview';
-          tempContainer.style.width = '210mm'; // Tamanho A4
-          tempContainer.style.padding = '20mm';
-          tempContainer.style.background = 'white';
-          tempContainer.style.position = 'absolute';
-          tempContainer.style.left = '-9999px';
-          tempContainer.style.fontFamily = 'Arial, sans-serif';
-          
-          // Cabeçalho do relatório
-          const header = document.createElement('div');
-          header.innerHTML = `
-            <div style="text-align: center; margin-bottom: 20px;">
-              <h1 style="font-size: 18px; font-weight: bold;">RELATÓRIO DE PLANTÃO - DICT</h1>
-              <p style="font-size: 14px;">Polícia Civil do Estado de Goiás</p>
-              <p style="font-size: 14px;">Relatório Nº: ${reportData.reportNumber || "N/A"}</p>
-              <p style="font-size: 14px;">Data: ${new Date().toLocaleDateString()}</p>
-            </div>
-          `;
-          
-          // Informações do Plantão
-          const info = document.createElement('div');
-          info.innerHTML = `
-            <div style="margin-bottom: 20px;">
-              <h2 style="font-size: 16px; font-weight: bold;">INFORMAÇÕES DO PLANTÃO</h2>
-              <p style="font-size: 14px;">Plantonista: ${reportData.officerName || "N/A"}</p>
-              <p style="font-size: 14px;">Data: ${reportData.date || "N/A"}</p>
-              <p style="font-size: 14px;">Horário: ${reportData.time || "N/A"}</p>
-            </div>
-          `;
-          
-          // Ocorrências
-          const occurrences = document.createElement('div');
-          occurrences.innerHTML = `
-            <div style="margin-bottom: 20px;">
-              <h2 style="font-size: 16px; font-weight: bold;">OCORRÊNCIAS REGISTRADAS</h2>
-              <p style="font-size: 14px;">${reportData.occurrences || "Nenhuma ocorrência registrada."}</p>
-            </div>
-          `;
-          
-          // Observações finais
-          const conclusion = document.createElement('div');
-          conclusion.innerHTML = `
-            <div style="margin-bottom: 20px;">
-              <h2 style="font-size: 16px; font-weight: bold;">OBSERVAÇÕES FINAIS</h2>
-              <p style="font-size: 14px;">${reportData.notes || "Sem observações adicionais."}</p>
-            </div>
-          `;
-          
-          // Assinatura
-          const signature = document.createElement('div');
-          signature.innerHTML = `
-            <div style="margin-top: 40px; text-align: center;">
-              <p style="font-size: 14px;">_______________________________</p>
-              <p style="font-size: 14px;">${reportData.officerName || ""}</p>
-              <p style="font-size: 14px;">Agente de Polícia</p>
-            </div>
-          `;
-          
-          // Adicionar todos os elementos ao container
-          tempContainer.appendChild(header);
-          tempContainer.appendChild(info);
-          tempContainer.appendChild(occurrences);
-          tempContainer.appendChild(conclusion);
-          tempContainer.appendChild(signature);
-          
-          // Adicionar ao corpo temporariamente
-          document.body.appendChild(tempContainer);
-          
-          // Renderizar para canvas
-          const canvas = await html2canvas(tempContainer, {
-            scale: 2,
-            logging: false,
-            useCORS: true
-          });
-          
-          // Remover o elemento temporário
-          document.body.removeChild(tempContainer);
-          
-          // Criar o PDF
-          const pdf = new jsPDF('p', 'mm', 'a4');
-          
-          // Adicionar a imagem do canvas ao PDF
-          const imgData = canvas.toDataURL('image/jpeg', 0.95);
-          const imgWidth = 210; // A4 width in mm
-          const pageHeight = 295; // A4 height in mm
-          const imgHeight = canvas.height * imgWidth / canvas.width;
-          let heightLeft = imgHeight;
-          
-          let position = 0;
-          
-          // Adicionar a primeira página
-          pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
-          
-          // Adicionar páginas adicionais se necessário
-          while (heightLeft > 0) {
-            position = heightLeft - imgHeight;
+        // Loop para adicionar páginas conforme necessário
+        for (let i = 0; i < splitText.length; i += linesPerPage) {
+          if (currentPage > 1) {
             pdf.addPage();
-            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
+            pdf.text(`Página ${currentPage} de ${totalPages}`, 170, 10);
           }
           
-          // Salvar o PDF
-          pdf.save(fileName);
-        } catch (error) {
-          console.error("Erro ao gerar PDF com html2canvas:", error);
-          
-          // Fallback para uma versão mais simples de PDF
-          const { default: { jsPDF } } = await import('jspdf');
-          const pdf = new jsPDF(options.jsPDF);
-          
-          // Criar uma versão básica do PDF
-          pdf.text("Relatório de Plantão - DICT", 105, 15, { align: "center" });
-          pdf.text(`Relatório Número: ${reportData.reportNumber || "N/A"}`, 105, 25, { align: "center" });
-          pdf.text("Data: " + new Date().toLocaleDateString(), 105, 35, { align: "center" });
-          pdf.text("Plantonista: " + (reportData.officerName || "N/A"), 20, 50);
-          
-          if (reportData.occurrences) {
-            pdf.text("OCORRÊNCIAS REGISTRADAS:", 20, 70);
-            const occurrencesText = reportData.occurrences;
-            // Quebrar texto longo em múltiplas linhas
-            const splitText = pdf.splitTextToSize(occurrencesText, 170);
-            pdf.text(splitText, 20, 80);
-          }
-          
-          pdf.save(fileName);
+          let pageText = splitText.slice(i, i + linesPerPage);
+          pdf.text(pageText, 20, currentPage === 1 ? 100 : 20);
+          currentPage++;
         }
-        
-        // Show success message
-        toast.success("Relatório exportado com sucesso como PDF");
-      } catch (error) {
-        console.error("Error converting to PDF:", error);
-        toast.error("Erro ao converter para PDF. Tente novamente.");
-        // Fallback: offer DOCX download
-        saveAs(docxBlob, fileName.replace(".pdf", ".docx"));
+      } else {
+        pdf.text(splitText, 20, 100);
       }
-    };
+    } else {
+      pdf.text("Nenhuma ocorrência registrada.", 20, 100);
+    }
     
-    reader.readAsArrayBuffer(docxBlob);
+    // Verificar se há observações
+    let yPos = pdf.internal.pageSize.height - 60;
     
+    if (reportData.notes && reportData.notes.trim()) {
+      pdf.addPage();
+      pdf.setFontSize(14);
+      pdf.text("OBSERVAÇÕES:", 20, 20);
+      
+      pdf.setFontSize(12);
+      const notesText = reportData.notes.trim();
+      const splitNotes = pdf.splitTextToSize(notesText, 170);
+      pdf.text(splitNotes, 20, 30);
+      
+      yPos = pdf.internal.pageSize.height - 60;
+    }
+    
+    // Adicionar linha para assinatura na última página
+    pdf.line(65, yPos + 10, 145, yPos + 10);
+    pdf.text(reportData.officerName || "Agente de Polícia", 105, yPos + 18, { align: "center" });
+    pdf.text("Agente de Polícia", 105, yPos + 25, { align: "center" });
+    pdf.text(`Goiânia, ${new Date().toLocaleDateString()}`, 105, yPos + 35, { align: "center" });
+    
+    // Salvar o PDF
+    pdf.save(fileName);
+    
+    // Mostrar mensagem de sucesso
+    toast.success("Relatório exportado com sucesso como PDF");
   } catch (error) {
-    console.error("Error in PDF export process:", error);
-    toast.error("Erro ao exportar o relatório. Tente novamente.");
-    throw error;
+    console.error("Erro na exportação para PDF:", error);
+    toast.error("Erro ao exportar o relatório como PDF. Tente novamente.");
   }
 }
