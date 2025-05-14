@@ -7,8 +7,8 @@ import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 
 /**
- * Exporta o relatório para PDF usando uma abordagem baseada em html2canvas
- * para garantir que a aparência fique igual à visualização prévia
+ * Exporta o relatório para PDF usando uma abordagem que mantém o formato
+ * similar ao documento Word
  */
 export async function exportReportToPdf(reportData: ReportData): Promise<void> {
   try {
@@ -16,116 +16,515 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
     const fileName = `Relatório_Plantão_${reportData.reportNumber || "DICT"}.pdf`;
     
     // Mostrar mensagem de preparação
-    toast.info("Preparando exportação para PDF...");
-    
-    // Gerar o HTML do relatório
-    const reportHtml = generatePrintableReportHTML(reportData);
-    
-    // Criar elemento temporário no DOM
-    const tempContainer = document.createElement("div");
-    tempContainer.innerHTML = reportHtml;
-    tempContainer.style.position = "absolute";
-    tempContainer.style.left = "-9999px";
-    tempContainer.style.top = "0";
-    tempContainer.style.width = "210mm"; // Largura A4
-    tempContainer.style.backgroundColor = "white";
-    tempContainer.style.padding = "20mm";
-    document.body.appendChild(tempContainer);
-    
-    // Esperar por imagens para carregar
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    toast.info("Preparando exportação para PDF, por favor aguarde...");
     
     // Criar instância de PDF com orientação retrato e tamanho A4
     const pdf = new jsPDF({
       orientation: "portrait",
       unit: "mm",
       format: "a4",
-      compress: true
     });
     
-    // Função para adicionar cabeçalho específico para cada página
-    const addHeader = (pageNumber: number) => {
-      pdf.setFont("helvetica", "bold");
+    // Configurar fonte e margens
+    pdf.setFont("helvetica");
+    
+    // Margens do documento em mm
+    const margin = 15;
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const contentWidth = pageWidth - 2 * margin;
+    
+    // Função para adicionar cabeçalho em cada página
+    const addPageHeader = (pageNum) => {
+      // Adicionar linha superior
+      pdf.setDrawColor(0);
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, 10, pageWidth - margin, 10);
+
+      // Adicionar cabeçalho institucional
       pdf.setFontSize(8);
-      pdf.text("POLÍCIA CIVIL DO ESTADO DE GOIÁS", 105, 10, { align: "center" });
-      pdf.text("DELEGACIA ESPECIALIZADA EM INVESTIGAÇÃO DE CRIMES DE TRÂNSITO", 105, 15, { align: "center" });
+      pdf.setFont("helvetica", "bold");
+      pdf.text("POLÍCIA CIVIL DO ESTADO DE GOIÁS", pageWidth / 2, 7, { align: "center" });
+      pdf.text("DELEGACIA ESPECIALIZADA EM INVESTIGAÇÃO DE CRIMES DE TRÂNSITO", pageWidth / 2, 12, { align: "center" });
       
-      // Adicionar número de página
-      pdf.text(`Página ${pageNumber}`, 190, 10, { align: "right" });
+      // Adicionar número da página
+      pdf.text(`Página ${pageNum}`, pageWidth - margin, 7, { align: "right" });
       
-      // Linha horizontal do cabeçalho
-      pdf.setLineWidth(0.1);
-      pdf.line(10, 17, 200, 17);
+      // Adicionar linha inferior
+      pdf.line(margin, 15, pageWidth - margin, 15);
+      
+      // Retornar posição Y após o cabeçalho
+      return 25; // Posição Y inicial para o conteúdo
     };
     
-    // Converter o HTML para uma série de imagens de canvas e adicionar ao PDF
-    const renderPage = async (element: HTMLElement, pageNumber = 1) => {
+    // Adicionar primeira página e cabeçalho
+    let currentPage = 1;
+    let y = addPageHeader(currentPage);
+    
+    // Função helper para adicionar nova página quando necessário
+    const checkAndAddNewPage = (heightNeeded) => {
+      const remainingSpace = pageHeight - margin - y;
+      if (remainingSpace < heightNeeded) {
+        pdf.addPage();
+        currentPage++;
+        y = addPageHeader(currentPage);
+        return true;
+      }
+      return false;
+    };
+    
+    // Adicionar emblemas e título institucional na primeira página
+    async function addInstitutionalHeader() {
       try {
-        // Renderizar a página como canvas
-        const canvas = await html2canvas(element, {
-          scale: 2, // Maior qualidade
-          useCORS: true,
-          logging: false,
-          allowTaint: true,
-          backgroundColor: "white"
+        // Centralizar os dados institucionais
+        const headerY = y;
+        
+        // Adicionar texto centralizado
+        pdf.setFontSize(10);
+        pdf.setFont("helvetica", "bold");
+        const textLines = [
+          "ESTADO DE GOIÁS",
+          "SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA",
+          "POLÍCIA CIVIL",
+          "DELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES DE CRIMES DE",
+          "TRÂNSITO - DICT DE GOIÂNIA"
+        ];
+        
+        // Desenhar o texto centralizado
+        let currentY = headerY;
+        textLines.forEach(line => {
+          pdf.text(line, pageWidth / 2, currentY, { align: "center" });
+          currentY += 5;
         });
         
-        // Converter canvas para imagem
-        const imgData = canvas.toDataURL("image/jpeg", 0.95);
+        // Adicionar espaçamento após o cabeçalho
+        y = currentY + 15;
         
-        // Se não for a primeira página, adicionar nova página
-        if (pageNumber > 1) {
-          pdf.addPage();
-        }
+        // Adicionar título do relatório
+        pdf.setFontSize(14);
+        pdf.text("RELATÓRIO DE PLANTÃO", pageWidth / 2, y, { align: "center" });
+        y += 10;
         
-        // Adicionar cabeçalho
-        addHeader(pageNumber);
+        // Adicionar data do relatório
+        pdf.setFontSize(12);
+        pdf.setFont("helvetica", "italic");
+        pdf.text(formatDate(reportData.reportDate), pageWidth / 2, y, { align: "center" });
+        y += 20; // Espaço após a data
         
-        // Adicionar imagem do canvas ao PDF
-        // Ajustar para começar abaixo do cabeçalho e com margens
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const margin = 10; // margens em mm
-        const headerHeight = 20; // altura do cabeçalho em mm
-        
-        // Ajustar a altura da imagem preservando a proporção
-        const imgWidth = pageWidth - 2 * margin;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        
-        // Adicionar imagem ao PDF
-        pdf.addImage(
-          imgData, 
-          "JPEG", 
-          margin, 
-          headerHeight, 
-          imgWidth, 
-          imgHeight
-        );
-        
-        return { height: imgHeight + headerHeight, pageNumber };
+        return y;
       } catch (error) {
-        console.error("Erro ao renderizar página:", error);
-        throw error;
-      }
-    };
-    
-    // Dividir o conteúdo em seções para renderizar separadamente
-    const sections = tempContainer.querySelectorAll(".report-section");
-    
-    if (sections.length === 0) {
-      // Se não houver seções definidas, renderizar tudo de uma vez
-      await renderPage(tempContainer);
-    } else {
-      // Renderizar cada seção como uma página separada
-      let pageNumber = 1;
-      for (const section of Array.from(sections)) {
-        await renderPage(section as HTMLElement, pageNumber);
-        pageNumber++;
+        console.error("Erro ao adicionar cabeçalho institucional:", error);
+        return y + 20;
       }
     }
     
-    // Limpar elemento temporário
-    document.body.removeChild(tempContainer);
+    // Adicionar texto introdutório
+    async function addIntroduction() {
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      
+      const introText = getIntroductoryText(reportData).replace(/<[^>]*>/g, '');
+      const splitText = pdf.splitTextToSize(introText, contentWidth);
+      
+      // Verificar se é necessário adicionar nova página
+      if (y + (splitText.length * 5) > pageHeight - margin) {
+        pdf.addPage();
+        currentPage++;
+        y = addPageHeader(currentPage);
+      }
+      
+      pdf.text(splitText, margin, y);
+      y += splitText.length * 7; // Ajuste o multiplicador conforme necessário
+      
+      // Adicionar espaço após o texto
+      y += 10;
+      
+      return y;
+    }
+    
+    // Função para adicionar as tabelas de dados
+    async function addDataTables() {
+      checkAndAddNewPage(40);
+      
+      // Dados do plantão
+      const tableData = [
+        ["Início do Plantão", formatDateTime(reportData.startDateTime) || ""],
+        ["Fim do Plantão", formatDateTime(reportData.endDateTime) || ""],
+        ["Nome da Equipe", reportData.teamName || ""],
+        ["Cartório Responsável", reportData.responsibleOffice || ""]
+      ];
+      
+      // Desenhar a tabela de dados
+      const cellPadding = 5;
+      const rowHeight = 10;
+      const col1Width = 60;
+      const col2Width = contentWidth - col1Width;
+      
+      // Desenhar as linhas da tabela de dados gerais
+      for (let i = 0; i < tableData.length; i++) {
+        const currentY = y + (i * rowHeight);
+        
+        // Verificar se precisa de nova página
+        if (currentY + rowHeight > pageHeight - margin) {
+          pdf.addPage();
+          currentPage++;
+          y = addPageHeader(currentPage);
+          // Recalcular currentY após adicionar nova página
+          const newRowIndex = i;
+          const newCurrentY = y + ((newRowIndex - i) * rowHeight);
+          
+          // Desenhar células
+          pdf.setFillColor(240, 240, 240); // Cinza claro para a primeira coluna
+          pdf.rect(margin, newCurrentY, col1Width, rowHeight, 'F');
+          pdf.setFont("helvetica", "bold");
+          pdf.text(tableData[i][0], margin + cellPadding, newCurrentY + 7);
+          
+          pdf.setFillColor(249, 249, 249); // Cinza mais claro para a segunda coluna
+          pdf.rect(margin + col1Width, newCurrentY, col2Width, rowHeight, 'F');
+          pdf.setFont("helvetica", "normal");
+          pdf.text(tableData[i][1], margin + col1Width + cellPadding, newCurrentY + 7);
+        } else {
+          // Desenhar células
+          pdf.setFillColor(240, 240, 240); // Cinza claro para a primeira coluna
+          pdf.rect(margin, currentY, col1Width, rowHeight, 'F');
+          pdf.setFont("helvetica", "bold");
+          pdf.text(tableData[i][0], margin + cellPadding, currentY + 7);
+          
+          pdf.setFillColor(249, 249, 249); // Cinza mais claro para a segunda coluna
+          pdf.rect(margin + col1Width, currentY, col2Width, rowHeight, 'F');
+          pdf.setFont("helvetica", "normal");
+          pdf.text(tableData[i][1], margin + col1Width + cellPadding, currentY + 7);
+        }
+      }
+      
+      // Atualizar a posição Y após a tabela
+      y += tableData.length * rowHeight + 15;
+      
+      // Tabela de policiais (se houver)
+      if (reportData.officers && reportData.officers.length > 0) {
+        checkAndAddNewPage(30);
+        
+        // Cabeçalho da tabela de policiais
+        pdf.setFillColor(240, 240, 240);
+        pdf.rect(margin, y, contentWidth, rowHeight, 'F');
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Policiais da Equipe", margin + cellPadding, y + 7);
+        y += rowHeight;
+        
+        // Conteúdo da tabela de policiais
+        pdf.setFillColor(249, 249, 249);
+        
+        // Calcular altura necessária para a célula de policiais
+        let officersText = "";
+        reportData.officers.forEach(officer => {
+          officersText += `• ${officer.name} - ${officer.role}\n`;
+        });
+        
+        const splitOfficersText = pdf.splitTextToSize(officersText, contentWidth - 2 * cellPadding);
+        const officersCellHeight = Math.max(rowHeight, splitOfficersText.length * 7);
+        
+        // Verificar se precisa de nova página
+        if (y + officersCellHeight > pageHeight - margin) {
+          pdf.addPage();
+          currentPage++;
+          y = addPageHeader(currentPage);
+        }
+        
+        // Desenhar a célula de policiais
+        pdf.rect(margin, y, contentWidth, officersCellHeight, 'F');
+        pdf.setFont("helvetica", "normal");
+        pdf.text(splitOfficersText, margin + cellPadding, y + 7);
+        
+        // Atualizar a posição Y
+        y += officersCellHeight + 15;
+      }
+      
+      return y;
+    }
+    
+    // Adicionar a seção de ocorrências
+    async function addOccurrencesSection() {
+      // Verificar se precisa de nova página
+      checkAndAddNewPage(40);
+      
+      // Título da seção
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(14);
+      pdf.text("1. Resumo das Ocorrências", margin, y);
+      y += 10;
+      
+      if (reportData.hasOccurrences && reportData.occurrences && reportData.occurrences.length > 0) {
+        // Processar cada ocorrência
+        for (const occurrence of reportData.occurrences) {
+          checkAndAddNewPage(50);
+          
+          // Adicionar tabela para cada ocorrência
+          const occTableData = [
+            ["Número do RAI", occurrence.raiNumber || ""],
+            ["Natureza da Ocorrência", occurrence.nature || ""],
+            ["Resumo da Ocorrência", occurrence.summary || ""],
+            ["Cartório Responsável", occurrence.responsibleOffice || ""]
+          ];
+          
+          // Desenhar a tabela de ocorrência
+          const rowHeight = 10;
+          const col1Width = 60;
+          const col2Width = contentWidth - col1Width;
+          const cellPadding = 5;
+          
+          for (let i = 0; i < occTableData.length; i++) {
+            // Verificar se o texto da segunda coluna precisa ser quebrado
+            const text = occTableData[i][1];
+            const splitText = pdf.splitTextToSize(text, col2Width - 2 * cellPadding);
+            const actualRowHeight = Math.max(rowHeight, splitText.length * 7);
+            
+            if (y + actualRowHeight > pageHeight - margin) {
+              pdf.addPage();
+              currentPage++;
+              y = addPageHeader(currentPage);
+            }
+            
+            // Desenhar células
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(margin, y, col1Width, actualRowHeight, 'F');
+            pdf.setFont("helvetica", "bold");
+            pdf.text(occTableData[i][0], margin + cellPadding, y + 7);
+            
+            pdf.setFillColor(249, 249, 249);
+            pdf.rect(margin + col1Width, y, col2Width, actualRowHeight, 'F');
+            pdf.setFont("helvetica", "normal");
+            pdf.text(splitText, margin + col1Width + cellPadding, y + 7);
+            
+            y += actualRowHeight;
+          }
+          
+          // Espaço entre ocorrências
+          y += 10;
+        }
+      } else {
+        // Mensagem de que não há ocorrências
+        pdf.setFontSize(12);
+        pdf.setFont("helvetica", "italic");
+        pdf.text("Não houve ocorrências durante o plantão.", margin, y);
+        y += 10;
+      }
+      
+      // Espaço após a seção de ocorrências
+      y += 10;
+      
+      return y;
+    }
+    
+    // Adicionar a seção de imagens
+    async function addImagesSection() {
+      // Verificar se precisa de nova página
+      checkAndAddNewPage(40);
+      
+      // Título da seção
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(14);
+      pdf.text("2. Imagens Relevantes", margin, y);
+      y += 10;
+      
+      if (reportData.images && reportData.images.length > 0) {
+        for (let i = 0; i < reportData.images.length; i++) {
+          try {
+            const image = reportData.images[i];
+            
+            // Altura estimada para a imagem e sua legenda
+            const estimatedHeight = 100; // Ajuste conforme necessário
+            
+            // Verificar se precisa de nova página
+            if (y + estimatedHeight > pageHeight - margin) {
+              pdf.addPage();
+              currentPage++;
+              y = addPageHeader(currentPage);
+            }
+            
+            // Adicionar a imagem
+            try {
+              pdf.addImage(
+                image.dataUrl,
+                'JPEG',
+                margin,
+                y,
+                contentWidth,
+                80
+              );
+              y += 85;
+              
+              // Adicionar a legenda da imagem
+              pdf.setFont("helvetica", "italic");
+              pdf.setFontSize(10);
+              const caption = image.description || `Imagem ${i + 1}`;
+              pdf.text(caption, pageWidth / 2, y, { align: "center" });
+              y += 15;
+            } catch (imgError) {
+              console.error("Erro ao adicionar imagem:", imgError);
+              pdf.setFont("helvetica", "italic");
+              pdf.setFontSize(10);
+              pdf.text(`[Erro ao carregar imagem ${i + 1}]`, margin, y);
+              y += 10;
+            }
+          } catch (error) {
+            console.error(`Erro ao processar imagem ${i}:`, error);
+          }
+        }
+      } else {
+        // Mensagem de que não há imagens
+        pdf.setFontSize(12);
+        pdf.setFont("helvetica", "italic");
+        pdf.text("Sem imagens relevantes", margin, y);
+        y += 10;
+      }
+      
+      // Espaço após a seção de imagens
+      y += 10;
+      
+      return y;
+    }
+    
+    // Adicionar a seção de observações
+    async function addObservationsSection() {
+      // Verificar se precisa de nova página
+      checkAndAddNewPage(40);
+      
+      // Título da seção
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(14);
+      pdf.text("3. Observações e Recomendações", margin, y);
+      y += 10;
+      
+      // Texto das observações
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(12);
+      
+      const observationsText = getObservationsText(reportData.observations).replace(/<[^>]*>/g, '');
+      if (observationsText.trim()) {
+        const splitText = pdf.splitTextToSize(observationsText, contentWidth);
+        
+        // Verificar se é necessário adicionar nova página
+        if (y + (splitText.length * 7) > pageHeight - margin) {
+          pdf.addPage();
+          currentPage++;
+          y = addPageHeader(currentPage);
+        }
+        
+        pdf.text(splitText, margin, y);
+        y += splitText.length * 7;
+      } else {
+        pdf.text("Não há informações dignas de nota decorrentes do Plantão ora documentado.", margin, y);
+        y += 10;
+      }
+      
+      // Espaço após a seção de observações
+      y += 15;
+      
+      return y;
+    }
+    
+    // Adicionar a seção de conclusão
+    async function addConclusionSection() {
+      // Verificar se precisa de nova página
+      checkAndAddNewPage(40);
+      
+      // Título da seção
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(14);
+      pdf.text("4. Conclusão", margin, y);
+      y += 10;
+      
+      // Texto da conclusão
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(12);
+      const conclusionText = "Esta equipe finaliza o presente relatório, permanecendo à disposição para eventuais esclarecimentos.";
+      const splitText = pdf.splitTextToSize(conclusionText, contentWidth);
+      
+      pdf.text(splitText, margin, y);
+      y += splitText.length * 7 + 15;
+      
+      return y;
+    }
+    
+    // Adicionar assinaturas
+    async function addSignatures() {
+      // Verificar se precisa de nova página
+      checkAndAddNewPage(40);
+      
+      // Título da seção
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(14);
+      pdf.text("Assinaturas", margin, y);
+      y += 20;
+      
+      // Adicionar assinaturas para cada oficial
+      if (reportData.officers && reportData.officers.length > 0) {
+        for (const officer of reportData.officers) {
+          // Verificar se precisa de nova página
+          if (y + 40 > pageHeight - margin) {
+            pdf.addPage();
+            currentPage++;
+            y = addPageHeader(currentPage);
+          }
+          
+          // Linha de assinatura
+          const signatureWidth = 80;
+          const startX = pageWidth / 2 - signatureWidth / 2;
+          pdf.line(startX, y, startX + signatureWidth, y);
+          y += 7;
+          
+          // Nome e cargo
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(12);
+          pdf.text(officer.name, pageWidth / 2, y, { align: "center" });
+          y += 7;
+          pdf.text(officer.role, pageWidth / 2, y, { align: "center" });
+          y += 20;
+        }
+      } else {
+        // Assinatura genérica
+        const signatureWidth = 80;
+        const startX = pageWidth / 2 - signatureWidth / 2;
+        pdf.line(startX, y, startX + signatureWidth, y);
+        y += 7;
+        
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(12);
+        pdf.text("Agente de Polícia", pageWidth / 2, y, { align: "center" });
+        y += 20;
+      }
+      
+      // Data da assinatura (Goiânia, data)
+      pdf.text(`Goiânia, ${formatDate(reportData.reportDate)}`, pageWidth / 2, y, { align: "center" });
+      
+      return y;
+    }
+    
+    // Função para adicionar rodapé
+    function addDocumentFooter() {
+      const footerY = pageHeight - 10;
+      pdf.setFontSize(8);
+      pdf.setTextColor(255, 0, 0); // Vermelho
+      pdf.setFont("helvetica", "bold");
+      pdf.text("DOCUMENTO RESERVADO - DICT", pageWidth / 2, footerY, { align: "center" });
+      pdf.setTextColor(0, 0, 0); // Voltar para preto
+    }
+    
+    // Executar a sequência de geração
+    await addInstitutionalHeader();
+    await addIntroduction();
+    await addDataTables();
+    await addOccurrencesSection();
+    await addImagesSection();
+    await addObservationsSection();
+    await addConclusionSection();
+    await addSignatures();
+    
+    // Adicionar rodapé em todas as páginas
+    for (let i = 1; i <= pdf.getNumberOfPages(); i++) {
+      pdf.setPage(i);
+      addDocumentFooter();
+    }
     
     // Salvar o PDF
     pdf.save(fileName);
@@ -136,291 +535,4 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
     console.error("Erro na exportação para PDF:", error);
     toast.error("Erro ao exportar o relatório como PDF. Tente novamente.");
   }
-}
-
-/**
- * Gera o HTML completo do relatório otimizado para impressão em PDF
- */
-function generatePrintableReportHTML(reportData: ReportData): string {
-  // Usar a mesma estrutura do HTML de visualização, mas dividir em seções para paginação
-  return `
-    <!DOCTYPE html>
-    <html lang="pt-BR">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Relatório de Plantão - ${reportData.reportNumber}</title>
-      <style>
-        @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman:wght@400;700&display=swap');
-        
-        body {
-          font-family: 'Times New Roman', Times, serif;
-          line-height: 1.5;
-          color: #333;
-          margin: 0;
-          padding: 0;
-        }
-        
-        .report-section {
-          margin-bottom: 20px;
-          page-break-inside: avoid;
-        }
-        
-        h1 {
-          color: #000;
-          text-align: center;
-          font-size: 14pt;
-          font-weight: bold;
-          margin-top: 12pt;
-          margin-bottom: 6pt;
-          line-height: 1.0;
-        }
-        
-        h2 {
-          color: #000;
-          font-size: 12pt;
-          font-weight: bold;
-          margin-top: 12pt;
-          margin-bottom: 6pt;
-          line-height: 1.0;
-        }
-        
-        .date {
-          text-align: center;
-          margin-bottom: 24pt;
-          font-style: italic;
-          font-size: 12pt;
-        }
-        
-        p {
-          margin: 6pt 0;
-          font-size: 12pt;
-          text-align: justify;
-        }
-        
-        .intro-paragraph {
-          text-indent: 2cm;
-        }
-        
-        .observation-paragraph {
-          text-indent: 2cm;
-        }
-        
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 15px 0;
-        }
-        
-        .signature-block {
-          margin-top: 40px;
-          text-align: center;
-        }
-        
-        .signature-line {
-          width: 200px;
-          border-top: 1px solid #000;
-          margin: 0 auto;
-        }
-        
-        .signature-name {
-          margin: 5px 0;
-        }
-        
-        .header-section {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 20px;
-        }
-        
-        .center-section {
-          text-align: center;
-          flex: 1;
-        }
-        
-        .emblem {
-          width: 65px;
-          height: 65px;
-          object-fit: contain;
-        }
-        
-        .title-section {
-          text-align: center;
-          margin-bottom: 20px;
-        }
-        
-        .data-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 15px 0;
-        }
-        
-        .data-table td {
-          padding: 8px;
-        }
-        
-        .data-table tr:nth-child(odd) td:first-child {
-          background-color: #f2f2f2;
-          font-weight: bold;
-          width: 30%;
-        }
-        
-        .data-table tr:nth-child(odd) td:last-child {
-          background-color: #f9f9f9;
-          width: 70%;
-        }
-        
-        .image-container {
-          margin: 20px 0;
-          text-align: center;
-        }
-        
-        .report-image {
-          max-width: 100%;
-          max-height: 300px;
-          border: 1px solid #ddd;
-        }
-        
-        .image-caption {
-          margin-top: 5px;
-          font-style: italic;
-          text-align: center;
-        }
-      </style>
-    </head>
-    <body>
-      <!-- Cabeçalho institucional -->
-      <div class="report-section header-section">
-        <div>
-          <img src="/lovable-uploads/40f0ded4-d89b-4ec7-847e-a35119ee6181.png" alt="Brasão da Polícia Civil" class="emblem" />
-        </div>
-        <div class="center-section">
-          <p style="margin: 0; font-weight: bold; font-size: 10pt;">ESTADO DE GOIÁS</p>
-          <p style="margin: 0; font-weight: bold; font-size: 10pt;">SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA</p>
-          <p style="margin: 0; font-weight: bold; font-size: 10pt;">POLÍCIA CIVIL</p>
-          <p style="margin: 0; font-weight: bold; font-size: 10pt;">DELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES DE CRIMES DE</p>
-          <p style="margin: 0; font-weight: bold; font-size: 10pt;">TRÂNSITO - DICT DE GOIÂNIA</p>
-        </div>
-        <div>
-          <img src="/lovable-uploads/81c65d63-622f-4659-9e6e-325660565994.png" alt="Brasão de Goiás" class="emblem" />
-        </div>
-      </div>
-      
-      <!-- Título do relatório -->
-      <div class="report-section title-section">
-        <h1>RELATÓRIO DE PLANTÃO ${reportData.reportNumber || ""}</h1>
-        <p class="date">${formatDate(reportData.reportDate)}</p>
-      </div>
-      
-      <!-- Texto introdutório -->
-      <div class="report-section">
-        <p class="intro-paragraph">${getIntroductoryText(reportData)}</p>
-      </div>
-      
-      <!-- Dados gerais -->
-      <div class="report-section">
-        <table class="data-table">
-          <tr>
-            <td>Início do Plantão</td>
-            <td>${formatDateTime(reportData.startDateTime)}</td>
-          </tr>
-          <tr>
-            <td>Fim do Plantão</td>
-            <td>${formatDateTime(reportData.endDateTime)}</td>
-          </tr>
-          <tr>
-            <td>Nome da Equipe</td>
-            <td>${reportData.teamName}</td>
-          </tr>
-          <tr>
-            <td>Cartório Responsável</td>
-            <td>${reportData.responsibleOffice}</td>
-          </tr>
-        </table>
-        
-        <table class="data-table">
-          <tr>
-            <td>Policiais da Equipe</td>
-            <td>
-              <ul style="list-style-type: disc; margin: 0; padding-left: 20px;">
-                ${reportData.officers.map(officer => `<li>${officer.name}<br>${officer.role}</li>`).join('')}
-              </ul>
-            </td>
-          </tr>
-        </table>
-      </div>
-      
-      <!-- Seção de ocorrências -->
-      <div class="report-section">
-        <h2>1. Resumo das Ocorrências</h2>
-        ${reportData.hasOccurrences && reportData.occurrences.length > 0 
-          ? reportData.occurrences.map(occurrence => `
-              <table class="data-table">
-                <tr>
-                  <td>Número do RAI</td>
-                  <td>${occurrence.raiNumber}</td>
-                </tr>
-                <tr>
-                  <td>Natureza da Ocorrência</td>
-                  <td>${occurrence.nature}</td>
-                </tr>
-                <tr>
-                  <td>Resumo da Ocorrência</td>
-                  <td>${occurrence.summary}</td>
-                </tr>
-                <tr>
-                  <td>Cartório Responsável</td>
-                  <td>${occurrence.responsibleOffice}</td>
-                </tr>
-              </table>
-            `).join('')
-          : "<p style='font-style: italic;'>Não houve ocorrências durante o plantão.</p>"
-        }
-      </div>
-      
-      <!-- Seção de imagens -->
-      <div class="report-section">
-        <h2>2. Imagens Relevantes</h2>
-        ${reportData.images && reportData.images.length > 0 
-          ? reportData.images.map((image, index) => `
-              <div class="image-container">
-                <img src="${image.dataUrl}" alt="Imagem ${index + 1}" class="report-image" />
-                <p class="image-caption">${image.description || `Imagem ${index + 1}`}</p>
-              </div>
-            `).join('')
-          : "<p style='font-style: italic;'>Sem imagens relevantes</p>"
-        }
-      </div>
-      
-      <!-- Seção de observações -->
-      <div class="report-section">
-        <h2>3. Observações e Recomendações</h2>
-        <p class="observation-paragraph">${getObservationsText(reportData.observations)}</p>
-      </div>
-      
-      <!-- Seção de conclusão -->
-      <div class="report-section">
-        <h2>4. Conclusão</h2>
-        <p class="observation-paragraph">Esta equipe finaliza o presente relatório, permanecendo à disposição para eventuais esclarecimentos.</p>
-      </div>
-      
-      <!-- Seção de assinaturas -->
-      <div class="report-section">
-        <h2>Assinaturas</h2>
-        ${reportData.officers.map(officer => `
-          <div class="signature-block">
-            <div class="signature-line"></div>
-            <p class="signature-name">${officer.name}<br>${officer.role}</p>
-          </div>
-        `).join('')}
-      </div>
-      
-      <!-- Rodapé do documento -->
-      <div style="text-align: center; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 10px;">
-        <p style="color: #FF0000; font-weight: bold; font-size: 8pt;">DOCUMENTO RESERVADO - DICT</p>
-      </div>
-    </body>
-    </html>
-  `;
 }
