@@ -1,14 +1,14 @@
 
 import { ReportData } from "../../types/report";
 import { formatDate } from "./dateFormatters";
-import { 
-  getIntroductoryText, 
-  getObservationsText 
-} from "./textGenerators";
+import { getIntroductoryText, getObservationsText } from "./textGenerators";
 import { 
   getOccurrencesTable, 
   getImagesHTML, 
-  getSignatureBlocks 
+  getSignatureBlocks,
+  getGeneralDataTable,
+  getInstitutionalHeader,
+  getDocumentFooter
 } from "./htmlGenerators";
 
 export function generateFullReportHTML(reportData: ReportData): string {
@@ -20,108 +20,137 @@ export function generateFullReportHTML(reportData: ReportData): string {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Relatório de Plantão - ${reportData.reportNumber}</title>
       <style>
+        @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman:wght@400;700&display=swap');
+        
         body {
-          font-family: Arial, sans-serif;
-          line-height: 1.6;
+          font-family: 'Times New Roman', Times, serif;
+          line-height: 1.5;
           color: #333;
           margin: 0;
           padding: 20px;
+          border: 1px solid #D3D3D3;
         }
-        h1, h2 {
-          color: #1a3a6e;
+        
+        .page {
+          padding: 30px 20px 25px 30px; /* Margins: Top, Right, Bottom, Left */
         }
+        
         h1 {
+          color: #000;
           text-align: center;
-          margin-bottom: 5px;
+          font-size: 14pt;
+          font-weight: bold;
+          margin-top: 12pt;
+          margin-bottom: 6pt;
+          line-height: 1.0;
         }
+        
+        h2 {
+          color: #000;
+          font-size: 12pt;
+          font-weight: bold;
+          margin-top: 12pt;
+          margin-bottom: 6pt;
+          line-height: 1.0;
+        }
+        
         .date {
           text-align: center;
-          margin-bottom: 20px;
+          margin-bottom: 24pt;
           font-style: italic;
+          font-size: 12pt;
         }
+        
         .section {
-          margin-bottom: 30px;
+          margin-bottom: 24pt;
         }
+        
+        p {
+          margin: 6pt 0;
+          font-size: 12pt;
+          text-align: justify;
+        }
+        
+        .intro-paragraph {
+          text-indent: 2cm;
+        }
+        
+        .observation-paragraph {
+          text-indent: 2cm;
+        }
+        
         table {
           width: 100%;
           border-collapse: collapse;
           margin: 15px 0;
         }
-        table, th, td {
-          border: 1px solid #ddd;
-        }
-        th, td {
-          padding: 10px;
-          text-align: left;
-        }
-        th {
-          background-color: #f2f2f2;
-        }
-        .signature-space {
+        
+        .signature-block {
           margin-top: 40px;
+          text-align: center;
+        }
+        
+        .signature-line {
+          width: 200px;
           border-top: 1px solid #000;
-          padding-top: 5px;
+          margin: 0 auto;
         }
-        .general-info {
-          margin-bottom: 20px;
-        }
-        .general-info p {
+        
+        .signature-name {
           margin: 5px 0;
         }
-        .general-info strong {
-          font-weight: bold;
-        }
-        img {
-          max-width: 100%;
+        
+        .preview-border {
+          border: 1px solid #D3D3D3;
+          padding: 30px 20px 25px 30px;
+          margin-bottom: 20px;
         }
       </style>
     </head>
     <body>
-      <h1>Relatório de Plantão</h1>
-      <p class="date">${formatDate(reportData.reportDate)}</p>
-      
-      <div class="section">
-        ${getIntroductoryText(reportData)}
-      </div>
-      
-      <div class="section">
-        <h2>Dados Gerais</h2>
-        <div class="general-info">
-          <p><strong>Nome da equipe:</strong> ${reportData.teamName}</p>
-          <p><strong>Cartório responsável:</strong> ${reportData.responsibleOffice}</p>
-          <p><strong>Policiais da equipe:</strong></p>
-          <ul>
-            ${reportData.officers.map(officer => `<li>${officer.name} - ${officer.role}</li>`).join('')}
-          </ul>
+      <div class="preview-border">
+        ${getInstitutionalHeader()}
+        
+        <h1>RELATÓRIO DE PLANTÃO ${reportData.reportNumber || ""}</h1>
+        <p class="date">${formatDate(reportData.reportDate)}</p>
+        
+        <div class="section">
+          <p class="intro-paragraph" style="text-indent: 2cm; text-align: justify;">${getIntroductoryText(reportData)}</p>
         </div>
-      </div>
-      
-      <div class="section">
-        <h2>Resumo das Ocorrências</h2>
-        ${reportData.hasOccurrences 
-          ? getOccurrencesTable(reportData.occurrences)
-          : "<p><em>Não houve ocorrências durante o plantão.</em></p>"
-        }
-      </div>
-      
-      <div class="section">
-        <h2>Imagens Relevantes</h2>
-        ${getImagesHTML(reportData)}
-      </div>
-      
-      <div class="section">
-        <h2>Observações e Recomendações</h2>
-        <p>${getObservationsText(reportData.observations)}</p>
-      </div>
-      
-      <div class="section">
-        <h2>Conclusão</h2>
-        <p>Esta equipe finaliza o presente relatório, permanecendo à disposição para eventuais esclarecimentos.</p>
-      </div>
-      
-      <div class="section">
-        <h2>Assinaturas</h2>
-        ${getSignatureBlocks(reportData)}
+        
+        <div class="section">
+          ${getGeneralDataTable(reportData)}
+        </div>
+        
+        <div class="section">
+          <h2>1. Resumo das Ocorrências</h2>
+          ${reportData.hasOccurrences 
+            ? getOccurrencesTable(reportData.occurrences)
+            : "<p style='text-align: justify;'><em>Não houve ocorrências durante o plantão.</em></p>"
+          }
+        </div>
+        
+        <div class="section">
+          <h2>2. Imagens Relevantes</h2>
+          ${getImagesHTML(reportData)}
+        </div>
+        
+        <div class="section">
+          <h2>3. Observações e Recomendações</h2>
+          <p class="observation-paragraph" style="text-indent: 2cm; text-align: justify;">${getObservationsText(reportData.observations)}</p>
+        </div>
+        
+        <div class="section">
+          <h2>4. Conclusão</h2>
+          <p class="observation-paragraph" style="text-indent: 2cm; text-align: justify;">Esta equipe finaliza o presente relatório, permanecendo à disposição para eventuais esclarecimentos.</p>
+        </div>
+        
+        <div class="section">
+          <h2>Assinaturas</h2>
+          ${getSignatureBlocks(reportData)}
+        </div>
+        
+        ${getDocumentFooter()}
       </div>
     </body>
     </html>

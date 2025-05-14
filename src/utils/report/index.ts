@@ -8,3 +8,9 @@ export {
   getSignatureBlocks 
 } from './htmlGenerators';
 export { generateFullReportHTML } from './reportGenerator';
+export { exportReportToWord } from './docxExport';
+export { processImageForDocx, base64ToBlob, base64ToUint8Array } from './imageProcessing';
+export { loadEmblems, getEmblems } from './emblems';
+
+// Re-export styles
+export * from './styles';

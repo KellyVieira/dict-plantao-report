@@ -6,54 +6,126 @@ import { getIntroductoryText, getObservationsText } from "./textGenerators";
 export function getOccurrencesTable(occurrences: Occurrence[]): string {
   if (!occurrences.length) return "";
 
-  const tableHeader = `
-  <table border="1" cellspacing="0" cellpadding="8" style="width: 100%; border-collapse: collapse;">
-    <thead>
-      <tr style="background-color: #f2f2f2;">
-        <th>Número do RAI</th>
-        <th>Natureza da Ocorrência</th>
-        <th>Resumo da Ocorrência</th>
-        <th>Cartório Responsável</th>
+  let htmlContent = '';
+  
+  occurrences.forEach(occurrence => {
+    htmlContent += `
+    <table border="0" cellspacing="0" cellpadding="8" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+      <tr>
+        <td style="background-color: #f2f2f2; font-weight: bold; width: 30%;">Número do RAI</td>
+        <td style="background-color: #f9f9f9; width: 70%;">${occurrence.raiNumber}</td>
       </tr>
-    </thead>
-    <tbody>
-  `;
+      <tr>
+        <td style="background-color: #f2f2f2; font-weight: bold; width: 30%;">Natureza da Ocorrência</td>
+        <td style="background-color: #f9f9f9; width: 70%;">${occurrence.nature}</td>
+      </tr>
+      <tr>
+        <td style="background-color: #f2f2f2; font-weight: bold; width: 30%;">Resumo da Ocorrência</td>
+        <td style="background-color: #f9f9f9; width: 70%;">${occurrence.summary}</td>
+      </tr>
+      <tr>
+        <td style="background-color: #f2f2f2; font-weight: bold; width: 30%;">Cartório Responsável</td>
+        <td style="background-color: #f9f9f9; width: 70%;">${occurrence.responsibleOffice}</td>
+      </tr>
+    </table>
+    `;
+  });
   
-  const tableRows = occurrences.map(occurrence => `
-    <tr>
-      <td>${occurrence.raiNumber}</td>
-      <td>${occurrence.nature}</td>
-      <td>${occurrence.summary}</td>
-      <td>${occurrence.responsibleOffice}</td>
-    </tr>
-  `).join('');
-  
-  const tableFooter = `
-    </tbody>
-  </table>
-  `;
-  
-  return tableHeader + tableRows + tableFooter;
+  return htmlContent;
 }
 
 export function getImagesHTML(reportData: ReportData): string {
   if (!reportData.images.length) {
-    return "<p><em>Sem imagens relevantes</em></p>";
+    return "<p style='font-family: \"Times New Roman\", Times, serif; font-style: italic; text-align: justify;'>Sem imagens relevantes</p>";
   }
   
   return reportData.images.map((image, index) => `
-    <div style="margin-bottom: 20px;">
-      <img src="${image.dataUrl}" alt="Imagem ${index + 1}" style="max-width: 100%; max-height: 300px; margin-bottom: 8px;" />
-      <p style="font-style: italic;">${image.description || `Imagem ${index + 1}`}</p>
-    </div>
+    <table border="1" cellspacing="0" cellpadding="8" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border-color: #D3D3D3;">
+      <tr>
+        <td style="text-align: center;">
+          <img src="${image.dataUrl}" alt="Imagem ${index + 1}" style="max-width: 100%; max-height: 300px; margin: 0 auto; display: block;" />
+        </td>
+      </tr>
+      <tr>
+        <td style="text-align: center; font-style: italic; font-family: \"Times New Roman\", Times, serif;">
+          ${image.description || `Imagem ${index + 1}`}
+        </td>
+      </tr>
+    </table>
   `).join('');
+}
+
+export function getGeneralDataTable(reportData: ReportData): string {
+  return `
+  <table border="0" cellspacing="0" cellpadding="8" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+    <tr>
+      <td style="background-color: #f2f2f2; font-weight: bold; width: 30%;">Início do Plantão</td>
+      <td style="background-color: #f9f9f9; width: 70%;">${formatDateTime(reportData.startDateTime)}</td>
+    </tr>
+    <tr>
+      <td style="background-color: #f2f2f2; font-weight: bold; width: 30%;">Fim do Plantão</td>
+      <td style="background-color: #f9f9f9; width: 70%;">${formatDateTime(reportData.endDateTime)}</td>
+    </tr>
+    <tr>
+      <td style="background-color: #f2f2f2; font-weight: bold; width: 30%;">Nome da Equipe</td>
+      <td style="background-color: #f9f9f9; width: 70%;">${reportData.teamName}</td>
+    </tr>
+    <tr>
+      <td style="background-color: #f2f2f2; font-weight: bold; width: 30%;">Cartório Responsável</td>
+      <td style="background-color: #f9f9f9; width: 70%;">${reportData.responsibleOffice}</td>
+    </tr>
+  </table>
+  
+  <table border="0" cellspacing="0" cellpadding="8" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+    <tr>
+      <td style="background-color: #f2f2f2; font-weight: bold; width: 30%; vertical-align: top;">Policiais da Equipe</td>
+      <td style="background-color: #f9f9f9; width: 70%;">
+        <ul style="list-style-type: disc; margin: 0; padding-left: 20px;">
+          ${reportData.officers.map(officer => `<li>${officer.name}<br>${officer.role}</li>`).join('')}
+        </ul>
+      </td>
+    </tr>
+  </table>
+  `;
 }
 
 export function getSignatureBlocks(reportData: ReportData): string {
   return reportData.officers.map(officer => `
-    <div style="margin-top: 30px;">
-      <div style="width: 100%; border-top: 1px solid black;"></div>
-      <p style="margin: 5px 0;">${officer.name} - ${officer.role}</p>
+    <div style="margin-top: 30px; text-align: center;">
+      <div style="width: 200px; margin: 0 auto;">
+        <p style="margin: 5px 0; font-family: 'Times New Roman', Times, serif;">${officer.name}<br>${officer.role}</p>
+      </div>
     </div>
   `).join('');
+}
+
+/**
+ * Generate the institutional header HTML
+ */
+export const getInstitutionalHeader = (): string => {
+  return `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24pt; text-align: center;">
+      <div style="width: 15%; text-align: center;">
+        <img src="/lovable-uploads/40f0ded4-d89b-4ec7-847e-a35119ee6181.png" alt="Brasão da Polícia Civil" style="width: 65px; height: 65px;" />
+      </div>
+      <div style="width: 70%; text-align: center;">
+        <p style="margin: 0; font-weight: bold; font-size: 10pt; text-align: center;">ESTADO DE GOIÁS</p>
+        <p style="margin: 0; font-weight: bold; font-size: 10pt; text-align: center;">SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA</p>
+        <p style="margin: 0; font-weight: bold; font-size: 10pt; text-align: center;">POLÍCIA CIVIL</p>
+        <p style="margin: 0; font-weight: bold; font-size: 10pt; text-align: center;">DELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES DE CRIMES DE</p>
+        <p style="margin: 0; font-weight: bold; font-size: 10pt; text-align: center;">TRÂNSITO - DICT DE GOIÂNIA</p>
+      </div>
+      <div style="width: 15%; text-align: center;">
+        <img src="/lovable-uploads/81c65d63-622f-4659-9e6e-325660565994.png" alt="Brasão de Goiás" style="width: 65px; height: 65px;" />
+      </div>
+    </div>
+  `;
+};
+
+export function getDocumentFooter(): string {
+  return `
+  <div style="text-align: center; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 10px;">
+    <p style="color: #FF0000; font-weight: bold; font-family: 'Times New Roman', Times, serif; font-size: 8pt;">DOCUMENTO RESERVADO - DICT</p>
+  </div>
+  `;
 }
