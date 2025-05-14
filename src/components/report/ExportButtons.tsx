@@ -1,10 +1,11 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Eye, FileText } from "lucide-react";
+import { Eye, FileText, FilePdf } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ReportData } from "../../types/report";
 import { exportReportToWord } from "../../utils/report/docxExport";
+import { exportReportToPdf } from "../../utils/report/pdfExport";
 
 type ExportButtonsProps = {
   reportData: ReportData;
@@ -47,6 +48,32 @@ const ExportButtons = ({
     }
   };
 
+  const handleExportToPdf = async () => {
+    setIsExporting(true);
+    toast({
+      title: "Exportando PDF",
+      description: "Por favor, aguarde enquanto o arquivo é gerado..."
+    });
+
+    try {
+      await exportReportToPdf(reportData);
+      
+      toast({
+        title: "PDF exportado com sucesso!",
+        description: "O arquivo foi baixado para o seu dispositivo."
+      });
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast({
+        title: "Erro na exportação",
+        description: "Não foi possível gerar o arquivo PDF. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row gap-4 justify-center pb-6">
       <Button 
@@ -65,6 +92,15 @@ const ExportButtons = ({
       >
         <FileText className="h-5 w-5" />
         Exportar .DOCX
+      </Button>
+
+      <Button 
+        className="bg-red-600 hover:bg-red-700 flex-1 gap-2 py-6" 
+        onClick={handleExportToPdf}
+        disabled={isExporting}
+      >
+        <FilePdf className="h-5 w-5" />
+        Exportar .PDF
       </Button>
     </div>
   );
