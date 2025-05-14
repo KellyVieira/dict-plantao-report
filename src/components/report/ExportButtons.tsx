@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Eye, FileText, FilePdf } from "lucide-react";
+import { Eye, FileText, FileOutput } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ReportData } from "../../types/report";
 import { exportReportToWord } from "../../utils/report/docxExport";
@@ -99,7 +99,7 @@ const ExportButtons = ({
         onClick={handleExportToPdf}
         disabled={isExporting}
       >
-        <FilePdf className="h-5 w-5" />
+        <FileOutput className="h-5 w-5" />
         Exportar .PDF
       </Button>
     </div>
