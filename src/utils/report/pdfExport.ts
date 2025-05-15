@@ -34,34 +34,53 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
     
     // Variável para controlar o número de páginas
     let currentPage = 1;
-    let y = 20; // Começar com um valor mais alto para pular o cabeçalho duplicado
     
     // Função para adicionar cabeçalho institucional em cada página
     const addPageHeader = (pageNum) => {
-      // Adicionar linha superior
-      pdf.setDrawColor(0);
-      pdf.setLineWidth(0.5);
-      pdf.line(margin, 15, pageWidth - margin, 15);
+      // Limpar qualquer conteúdo na área do cabeçalho para evitar sobreposição
+      pdf.setFillColor(255, 255, 255); // Cor branca
+      pdf.rect(0, 0, pageWidth, 65, 'F');
       
       // Adicionar número da página (canto superior direito)
       pdf.setFontSize(10);
       pdf.setFont("times", "normal");
       pdf.text(`Página ${pageNum}`, pageWidth - margin, 10, { align: "right" });
       
-      // Adicionar linha inferior
-      pdf.line(margin, 20, pageWidth - margin, 20);
+      // Adicionar linha horizontal abaixo
+      pdf.setDrawColor(0);
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, 15, pageWidth - margin, 15);
       
-      return 30; // Posição Y inicial para o conteúdo
+      // Adicionar texto centralizado do cabeçalho institucional
+      pdf.setFontSize(11);
+      pdf.setFont("times", "bold");
+      const textLines = [
+        "ESTADO DE GOIÁS",
+        "SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA",
+        "POLÍCIA CIVIL",
+        "DELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES DE CRIMES DE",
+        "TRÂNSITO - DICT DE GOIÂNIA"
+      ];
+      
+      // Desenhar o texto centralizado
+      let currentY = 25;
+      textLines.forEach(line => {
+        pdf.text(line, pageWidth / 2, currentY, { align: "center" });
+        currentY += 5;
+      });
+      
+      // Retornar a posição Y após o cabeçalho
+      return currentY + 15; // Posição inicial para o conteúdo
     };
+    
+    // Adicionar primeira página e cabeçalho
+    let y = addPageHeader(currentPage);
     
     // Função helper para adicionar nova página quando necessário
     const addNewPage = () => {
       pdf.addPage();
       currentPage++;
       y = addPageHeader(currentPage);
-      
-      // Adicionar texto de cabeçalho na nova página
-      addInstitutionalHeaderText();
     };
     
     // Função para verificar se precisa adicionar nova página
@@ -74,53 +93,21 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       return false;
     };
     
-    // Função para adicionar apenas o texto do cabeçalho institucional
-    const addInstitutionalHeaderText = () => {
-      // Adicionar texto centralizado
-      pdf.setFontSize(11);
+    // Adicionar título do relatório
+    async function addReportTitle() {
+      // Adicionar título do relatório
+      pdf.setFontSize(14);
       pdf.setFont("times", "bold");
-      const textLines = [
-        "ESTADO DE GOIÁS",
-        "SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA",
-        "POLÍCIA CIVIL",
-        "DELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES DE CRIMES DE",
-        "TRÂNSITO - DICT DE GOIÂNIA"
-      ];
+      pdf.text(`RELATÓRIO DE PLANTÃO ${reportData.reportNumber || ""}`, pageWidth / 2, y, { align: "center" });
+      y += 10;
       
-      // Desenhar o texto centralizado
-      let currentY = 30;
-      textLines.forEach(line => {
-        pdf.text(line, pageWidth / 2, currentY, { align: "center" });
-        currentY += 5;
-      });
+      // Adicionar data do relatório
+      pdf.setFontSize(12);
+      pdf.setFont("times", "italic");
+      pdf.text(formatDate(reportData.reportDate), pageWidth / 2, y, { align: "center" });
+      y += 20; // Espaço após a data
       
-      return currentY + 10; // Retornar a posição Y após o cabeçalho
-    };
-    
-    // Adicionar primeira página e cabeçalho
-    y = addPageHeader(currentPage);
-    
-    // Adicionar cabeçalho institucional na primeira página
-    async function addInstitutionalHeader() {
-      try {
-        y = addInstitutionalHeaderText();
-        
-        // Adicionar título do relatório
-        pdf.setFontSize(14);
-        pdf.text(`RELATÓRIO DE PLANTÃO ${reportData.reportNumber || ""}`, pageWidth / 2, y, { align: "center" });
-        y += 10;
-        
-        // Adicionar data do relatório
-        pdf.setFontSize(12);
-        pdf.setFont("times", "italic");
-        pdf.text(formatDate(reportData.reportDate), pageWidth / 2, y, { align: "center" });
-        y += 20; // Espaço após a data
-        
-        return y;
-      } catch (error) {
-        console.error("Erro ao adicionar cabeçalho institucional:", error);
-        return y + 20;
-      }
+      return y;
     }
     
     // Adicionar texto introdutório
@@ -563,7 +550,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
     }
     
     // Executar a sequência de geração
-    await addInstitutionalHeader();
+    await addReportTitle();
     await addIntroduction();
     await addDataTables();
     await addOccurrencesSection();
