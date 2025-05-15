@@ -3,12 +3,10 @@ import { ReportData } from "../../types/report";
 import { toast } from "sonner";
 import { formatDate, formatDateTime } from "./dateFormatters";
 import { getIntroductoryText, getObservationsText } from "./textGenerators";
-import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 
 /**
- * Exporta o relatório para PDF usando uma abordagem que mantém o formato
- * similar ao documento Word
+ * Exporta o relatório para PDF seguindo a estrutura e formatação oficial
  */
 export async function exportReportToPdf(reportData: ReportData): Promise<void> {
   try {
@@ -26,10 +24,10 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
     });
     
     // Configurar fonte e margens
-    pdf.setFont("helvetica");
+    pdf.setFont("times", "normal");
     
     // Margens do documento em mm
-    const margin = 15;
+    const margin = 20;
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const contentWidth = pageWidth - 2 * margin;
@@ -43,7 +41,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
 
       // Adicionar cabeçalho institucional
       pdf.setFontSize(8);
-      pdf.setFont("helvetica", "bold");
+      pdf.setFont("times", "bold");
       pdf.text("POLÍCIA CIVIL DO ESTADO DE GOIÁS", pageWidth / 2, 7, { align: "center" });
       pdf.text("DELEGACIA ESPECIALIZADA EM INVESTIGAÇÃO DE CRIMES DE TRÂNSITO", pageWidth / 2, 12, { align: "center" });
       
@@ -73,15 +71,12 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       return false;
     };
     
-    // Adicionar emblemas e título institucional na primeira página
+    // Adicionar cabeçalho institucional na primeira página
     async function addInstitutionalHeader() {
       try {
-        // Centralizar os dados institucionais
-        const headerY = y;
-        
         // Adicionar texto centralizado
-        pdf.setFontSize(10);
-        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(11);
+        pdf.setFont("times", "bold");
         const textLines = [
           "ESTADO DE GOIÁS",
           "SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA",
@@ -91,7 +86,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         ];
         
         // Desenhar o texto centralizado
-        let currentY = headerY;
+        let currentY = y;
         textLines.forEach(line => {
           pdf.text(line, pageWidth / 2, currentY, { align: "center" });
           currentY += 5;
@@ -102,12 +97,12 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         
         // Adicionar título do relatório
         pdf.setFontSize(14);
-        pdf.text("RELATÓRIO DE PLANTÃO", pageWidth / 2, y, { align: "center" });
+        pdf.text(`RELATÓRIO DE PLANTÃO ${reportData.reportNumber || ""}`, pageWidth / 2, y, { align: "center" });
         y += 10;
         
         // Adicionar data do relatório
         pdf.setFontSize(12);
-        pdf.setFont("helvetica", "italic");
+        pdf.setFont("times", "italic");
         pdf.text(formatDate(reportData.reportDate), pageWidth / 2, y, { align: "center" });
         y += 20; // Espaço após a data
         
@@ -121,19 +116,20 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
     // Adicionar texto introdutório
     async function addIntroduction() {
       pdf.setFontSize(12);
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont("times", "normal");
       
       const introText = getIntroductoryText(reportData).replace(/<[^>]*>/g, '');
       const splitText = pdf.splitTextToSize(introText, contentWidth);
       
       // Verificar se é necessário adicionar nova página
-      if (y + (splitText.length * 5) > pageHeight - margin) {
+      if (y + (splitText.length * 7) > pageHeight - margin) {
         pdf.addPage();
         currentPage++;
         y = addPageHeader(currentPage);
       }
       
-      pdf.text(splitText, margin, y);
+      // Definir alinhamento justificado para o texto
+      pdf.text(splitText, margin, y, { align: "justify" });
       y += splitText.length * 7; // Ajuste o multiplicador conforme necessário
       
       // Adicionar espaço após o texto
@@ -160,6 +156,13 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       const col1Width = 60;
       const col2Width = contentWidth - col1Width;
       
+      // Desenhar a tabela com linhas de separação
+      pdf.setDrawColor(211, 211, 211); // Cor cinza claro para as linhas da tabela
+      pdf.setLineWidth(0.3);
+      
+      // Desenhar a linha superior da tabela
+      pdf.line(margin, y, margin + contentWidth, y);
+      
       // Desenhar as linhas da tabela de dados gerais
       for (let i = 0; i < tableData.length; i++) {
         const currentY = y + (i * rowHeight);
@@ -173,28 +176,42 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
           const newRowIndex = i;
           const newCurrentY = y + ((newRowIndex - i) * rowHeight);
           
+          // Desenhar a linha superior da tabela na nova página
+          pdf.line(margin, y, margin + contentWidth, y);
+          
           // Desenhar células
           pdf.setFillColor(240, 240, 240); // Cinza claro para a primeira coluna
           pdf.rect(margin, newCurrentY, col1Width, rowHeight, 'F');
-          pdf.setFont("helvetica", "bold");
+          pdf.setFont("times", "bold");
           pdf.text(tableData[i][0], margin + cellPadding, newCurrentY + 7);
           
           pdf.setFillColor(249, 249, 249); // Cinza mais claro para a segunda coluna
           pdf.rect(margin + col1Width, newCurrentY, col2Width, rowHeight, 'F');
-          pdf.setFont("helvetica", "normal");
+          pdf.setFont("times", "normal");
           pdf.text(tableData[i][1], margin + col1Width + cellPadding, newCurrentY + 7);
+          
+          // Desenhar a linha horizontal após esta linha
+          pdf.line(margin, newCurrentY + rowHeight, margin + contentWidth, newCurrentY + rowHeight);
         } else {
           // Desenhar células
           pdf.setFillColor(240, 240, 240); // Cinza claro para a primeira coluna
           pdf.rect(margin, currentY, col1Width, rowHeight, 'F');
-          pdf.setFont("helvetica", "bold");
+          pdf.setFont("times", "bold");
           pdf.text(tableData[i][0], margin + cellPadding, currentY + 7);
           
           pdf.setFillColor(249, 249, 249); // Cinza mais claro para a segunda coluna
           pdf.rect(margin + col1Width, currentY, col2Width, rowHeight, 'F');
-          pdf.setFont("helvetica", "normal");
+          pdf.setFont("times", "normal");
           pdf.text(tableData[i][1], margin + col1Width + cellPadding, currentY + 7);
+          
+          // Desenhar a linha horizontal após esta linha
+          pdf.line(margin, currentY + rowHeight, margin + contentWidth, currentY + rowHeight);
         }
+        
+        // Desenhar as linhas verticais
+        pdf.line(margin, y, margin, y + tableData.length * rowHeight);
+        pdf.line(margin + col1Width, y, margin + col1Width, y + tableData.length * rowHeight);
+        pdf.line(margin + contentWidth, y, margin + contentWidth, y + tableData.length * rowHeight);
       }
       
       // Atualizar a posição Y após a tabela
@@ -204,36 +221,38 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       if (reportData.officers && reportData.officers.length > 0) {
         checkAndAddNewPage(30);
         
+        // Desenhar a linha superior da tabela
+        pdf.line(margin, y, margin + contentWidth, y);
+        
         // Cabeçalho da tabela de policiais
         pdf.setFillColor(240, 240, 240);
-        pdf.rect(margin, y, contentWidth, rowHeight, 'F');
-        pdf.setFont("helvetica", "bold");
+        pdf.rect(margin, y, col1Width, rowHeight, 'F');
+        pdf.setFont("times", "bold");
         pdf.text("Policiais da Equipe", margin + cellPadding, y + 7);
-        y += rowHeight;
         
-        // Conteúdo da tabela de policiais
-        pdf.setFillColor(249, 249, 249);
-        
-        // Calcular altura necessária para a célula de policiais
+        // Preparar texto de policiais
         let officersText = "";
         reportData.officers.forEach(officer => {
-          officersText += `• ${officer.name} - ${officer.role}\n`;
+          officersText += `${officer.name} - ${officer.role}\n`;
         });
         
-        const splitOfficersText = pdf.splitTextToSize(officersText, contentWidth - 2 * cellPadding);
+        // Calcular altura necessária para a célula de policiais
+        const splitOfficersText = pdf.splitTextToSize(officersText, col2Width - 2 * cellPadding);
         const officersCellHeight = Math.max(rowHeight, splitOfficersText.length * 7);
         
-        // Verificar se precisa de nova página
-        if (y + officersCellHeight > pageHeight - margin) {
-          pdf.addPage();
-          currentPage++;
-          y = addPageHeader(currentPage);
-        }
-        
         // Desenhar a célula de policiais
-        pdf.rect(margin, y, contentWidth, officersCellHeight, 'F');
-        pdf.setFont("helvetica", "normal");
-        pdf.text(splitOfficersText, margin + cellPadding, y + 7);
+        pdf.setFillColor(249, 249, 249);
+        pdf.rect(margin + col1Width, y, col2Width, officersCellHeight, 'F');
+        pdf.setFont("times", "normal");
+        pdf.text(splitOfficersText, margin + col1Width + cellPadding, y + 7);
+        
+        // Desenhar as linhas verticais
+        pdf.line(margin, y, margin, y + officersCellHeight);
+        pdf.line(margin + col1Width, y, margin + col1Width, y + officersCellHeight);
+        pdf.line(margin + contentWidth, y, margin + contentWidth, y + officersCellHeight);
+        
+        // Desenhar a linha horizontal após esta tabela
+        pdf.line(margin, y + officersCellHeight, margin + contentWidth, y + officersCellHeight);
         
         // Atualizar a posição Y
         y += officersCellHeight + 15;
@@ -248,23 +267,30 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       checkAndAddNewPage(40);
       
       // Título da seção
-      pdf.setFont("helvetica", "bold");
+      pdf.setFont("times", "bold");
       pdf.setFontSize(14);
       pdf.text("1. Resumo das Ocorrências", margin, y);
       y += 10;
       
       if (reportData.hasOccurrences && reportData.occurrences && reportData.occurrences.length > 0) {
+        // Desenhar a tabela com linhas de separação
+        pdf.setDrawColor(211, 211, 211); // Cor cinza claro para as linhas da tabela
+        pdf.setLineWidth(0.3);
+        
         // Processar cada ocorrência
         for (const occurrence of reportData.occurrences) {
           checkAndAddNewPage(50);
           
-          // Adicionar tabela para cada ocorrência
+          // Definir dados para a tabela de ocorrência
           const occTableData = [
             ["Número do RAI", occurrence.raiNumber || ""],
             ["Natureza da Ocorrência", occurrence.nature || ""],
             ["Resumo da Ocorrência", occurrence.summary || ""],
             ["Cartório Responsável", occurrence.responsibleOffice || ""]
           ];
+          
+          // Desenhar a linha superior da tabela
+          pdf.line(margin, y, margin + contentWidth, y);
           
           // Desenhar a tabela de ocorrência
           const rowHeight = 10;
@@ -282,18 +308,29 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
               pdf.addPage();
               currentPage++;
               y = addPageHeader(currentPage);
+              
+              // Desenhar a linha superior da tabela na nova página
+              pdf.line(margin, y, margin + contentWidth, y);
             }
             
             // Desenhar células
             pdf.setFillColor(240, 240, 240);
             pdf.rect(margin, y, col1Width, actualRowHeight, 'F');
-            pdf.setFont("helvetica", "bold");
+            pdf.setFont("times", "bold");
             pdf.text(occTableData[i][0], margin + cellPadding, y + 7);
             
             pdf.setFillColor(249, 249, 249);
             pdf.rect(margin + col1Width, y, col2Width, actualRowHeight, 'F');
-            pdf.setFont("helvetica", "normal");
-            pdf.text(splitText, margin + col1Width + cellPadding, y + 7);
+            pdf.setFont("times", "normal");
+            pdf.text(splitText, margin + col1Width + cellPadding, y + 7, { align: "justify" });
+            
+            // Desenhar as linhas verticais para esta linha
+            pdf.line(margin, y, margin, y + actualRowHeight);
+            pdf.line(margin + col1Width, y, margin + col1Width, y + actualRowHeight);
+            pdf.line(margin + contentWidth, y, margin + contentWidth, y + actualRowHeight);
+            
+            // Desenhar a linha horizontal após esta linha
+            pdf.line(margin, y + actualRowHeight, margin + contentWidth, y + actualRowHeight);
             
             y += actualRowHeight;
           }
@@ -304,8 +341,8 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       } else {
         // Mensagem de que não há ocorrências
         pdf.setFontSize(12);
-        pdf.setFont("helvetica", "italic");
-        pdf.text("Não houve ocorrências durante o plantão.", margin, y);
+        pdf.setFont("times", "italic");
+        pdf.text("Não houve ocorrências durante o plantão.", margin, y, { align: "justify" });
         y += 10;
       }
       
@@ -321,7 +358,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       checkAndAddNewPage(40);
       
       // Título da seção
-      pdf.setFont("helvetica", "bold");
+      pdf.setFont("times", "bold");
       pdf.setFontSize(14);
       pdf.text("2. Imagens Relevantes", margin, y);
       y += 10;
@@ -341,30 +378,43 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
               y = addPageHeader(currentPage);
             }
             
-            // Adicionar a imagem
+            // Configurar borda cinza claro para imagens
+            pdf.setDrawColor(211, 211, 211); // Cinza claro
+            pdf.setLineWidth(0.5);
+            
+            // Dimensões da imagem e borda
+            const imgWidth = 150;
+            const imgHeight = 80;
+            const startX = pageWidth / 2 - imgWidth / 2;
+            
+            // Desenhar a borda em volta da imagem
+            pdf.rect(startX - 5, y - 5, imgWidth + 10, imgHeight + 10);
+            
+            // Adicionar a imagem centralizada
             try {
               pdf.addImage(
                 image.dataUrl,
                 'JPEG',
-                margin,
+                startX,
                 y,
-                contentWidth,
-                80
+                imgWidth,
+                imgHeight
               );
-              y += 85;
+              y += imgHeight + 10;
               
               // Adicionar a legenda da imagem
-              pdf.setFont("helvetica", "italic");
+              pdf.setFont("times", "italic");
               pdf.setFontSize(10);
               const caption = image.description || `Imagem ${i + 1}`;
-              pdf.text(caption, pageWidth / 2, y, { align: "center" });
-              y += 15;
+              const splitCaption = pdf.splitTextToSize(caption, contentWidth);
+              pdf.text(splitCaption, pageWidth / 2, y, { align: "center" });
+              y += splitCaption.length * 7 + 15;
             } catch (imgError) {
               console.error("Erro ao adicionar imagem:", imgError);
-              pdf.setFont("helvetica", "italic");
+              pdf.setFont("times", "italic");
               pdf.setFontSize(10);
-              pdf.text(`[Erro ao carregar imagem ${i + 1}]`, margin, y);
-              y += 10;
+              pdf.text(`[Erro ao carregar imagem ${i + 1}]`, pageWidth / 2, y + 10, { align: "center" });
+              y += 20;
             }
           } catch (error) {
             console.error(`Erro ao processar imagem ${i}:`, error);
@@ -373,8 +423,8 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       } else {
         // Mensagem de que não há imagens
         pdf.setFontSize(12);
-        pdf.setFont("helvetica", "italic");
-        pdf.text("Sem imagens relevantes", margin, y);
+        pdf.setFont("times", "italic");
+        pdf.text("Sem imagens relevantes", margin, y, { align: "justify" });
         y += 10;
       }
       
@@ -390,13 +440,13 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       checkAndAddNewPage(40);
       
       // Título da seção
-      pdf.setFont("helvetica", "bold");
+      pdf.setFont("times", "bold");
       pdf.setFontSize(14);
       pdf.text("3. Observações e Recomendações", margin, y);
       y += 10;
       
       // Texto das observações
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont("times", "normal");
       pdf.setFontSize(12);
       
       const observationsText = getObservationsText(reportData.observations).replace(/<[^>]*>/g, '');
@@ -410,10 +460,10 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
           y = addPageHeader(currentPage);
         }
         
-        pdf.text(splitText, margin, y);
+        pdf.text(splitText, margin, y, { align: "justify" });
         y += splitText.length * 7;
       } else {
-        pdf.text("Não há informações dignas de nota decorrentes do Plantão ora documentado.", margin, y);
+        pdf.text("Não há informações dignas de nota decorrentes do Plantão ora documentado.", margin, y, { align: "justify" });
         y += 10;
       }
       
@@ -429,18 +479,18 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       checkAndAddNewPage(40);
       
       // Título da seção
-      pdf.setFont("helvetica", "bold");
+      pdf.setFont("times", "bold");
       pdf.setFontSize(14);
       pdf.text("4. Conclusão", margin, y);
       y += 10;
       
       // Texto da conclusão
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont("times", "normal");
       pdf.setFontSize(12);
       const conclusionText = "Esta equipe finaliza o presente relatório, permanecendo à disposição para eventuais esclarecimentos.";
       const splitText = pdf.splitTextToSize(conclusionText, contentWidth);
       
-      pdf.text(splitText, margin, y);
+      pdf.text(splitText, margin, y, { align: "justify" });
       y += splitText.length * 7 + 15;
       
       return y;
@@ -452,7 +502,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       checkAndAddNewPage(40);
       
       // Título da seção
-      pdf.setFont("helvetica", "bold");
+      pdf.setFont("times", "bold");
       pdf.setFontSize(14);
       pdf.text("Assinaturas", margin, y);
       y += 20;
@@ -474,7 +524,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
           y += 7;
           
           // Nome e cargo
-          pdf.setFont("helvetica", "normal");
+          pdf.setFont("times", "normal");
           pdf.setFontSize(12);
           pdf.text(officer.name, pageWidth / 2, y, { align: "center" });
           y += 7;
@@ -488,7 +538,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         pdf.line(startX, y, startX + signatureWidth, y);
         y += 7;
         
-        pdf.setFont("helvetica", "normal");
+        pdf.setFont("times", "normal");
         pdf.setFontSize(12);
         pdf.text("Agente de Polícia", pageWidth / 2, y, { align: "center" });
         y += 20;
@@ -505,7 +555,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       const footerY = pageHeight - 10;
       pdf.setFontSize(8);
       pdf.setTextColor(255, 0, 0); // Vermelho
-      pdf.setFont("helvetica", "bold");
+      pdf.setFont("times", "bold");
       pdf.text("DOCUMENTO RESERVADO - DICT", pageWidth / 2, footerY, { align: "center" });
       pdf.setTextColor(0, 0, 0); // Voltar para preto
     }
