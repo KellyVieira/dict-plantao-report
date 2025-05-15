@@ -32,68 +32,78 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
     const pageHeight = pdf.internal.pageSize.getHeight();
     const contentWidth = pageWidth - 2 * margin;
     
-    // Função para adicionar cabeçalho em cada página
+    // Variável para controlar o número de páginas
+    let currentPage = 1;
+    let y = 20; // Começar com um valor mais alto para pular o cabeçalho duplicado
+    
+    // Função para adicionar cabeçalho institucional em cada página
     const addPageHeader = (pageNum) => {
       // Adicionar linha superior
       pdf.setDrawColor(0);
       pdf.setLineWidth(0.5);
-      pdf.line(margin, 10, pageWidth - margin, 10);
-
-      // Adicionar cabeçalho institucional
-      pdf.setFontSize(8);
-      pdf.setFont("times", "bold");
-      pdf.text("POLÍCIA CIVIL DO ESTADO DE GOIÁS", pageWidth / 2, 7, { align: "center" });
-      pdf.text("DELEGACIA ESPECIALIZADA EM INVESTIGAÇÃO DE CRIMES DE TRÂNSITO", pageWidth / 2, 12, { align: "center" });
-      
-      // Adicionar número da página
-      pdf.text(`Página ${pageNum}`, pageWidth - margin, 7, { align: "right" });
-      
-      // Adicionar linha inferior
       pdf.line(margin, 15, pageWidth - margin, 15);
       
-      // Retornar posição Y após o cabeçalho
-      return 25; // Posição Y inicial para o conteúdo
+      // Adicionar número da página (canto superior direito)
+      pdf.setFontSize(10);
+      pdf.setFont("times", "normal");
+      pdf.text(`Página ${pageNum}`, pageWidth - margin, 10, { align: "right" });
+      
+      // Adicionar linha inferior
+      pdf.line(margin, 20, pageWidth - margin, 20);
+      
+      return 30; // Posição Y inicial para o conteúdo
     };
     
-    // Adicionar primeira página e cabeçalho
-    let currentPage = 1;
-    let y = addPageHeader(currentPage);
-    
     // Função helper para adicionar nova página quando necessário
+    const addNewPage = () => {
+      pdf.addPage();
+      currentPage++;
+      y = addPageHeader(currentPage);
+      
+      // Adicionar texto de cabeçalho na nova página
+      addInstitutionalHeaderText();
+    };
+    
+    // Função para verificar se precisa adicionar nova página
     const checkAndAddNewPage = (heightNeeded) => {
       const remainingSpace = pageHeight - margin - y;
       if (remainingSpace < heightNeeded) {
-        pdf.addPage();
-        currentPage++;
-        y = addPageHeader(currentPage);
+        addNewPage();
         return true;
       }
       return false;
     };
     
+    // Função para adicionar apenas o texto do cabeçalho institucional
+    const addInstitutionalHeaderText = () => {
+      // Adicionar texto centralizado
+      pdf.setFontSize(11);
+      pdf.setFont("times", "bold");
+      const textLines = [
+        "ESTADO DE GOIÁS",
+        "SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA",
+        "POLÍCIA CIVIL",
+        "DELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES DE CRIMES DE",
+        "TRÂNSITO - DICT DE GOIÂNIA"
+      ];
+      
+      // Desenhar o texto centralizado
+      let currentY = 30;
+      textLines.forEach(line => {
+        pdf.text(line, pageWidth / 2, currentY, { align: "center" });
+        currentY += 5;
+      });
+      
+      return currentY + 10; // Retornar a posição Y após o cabeçalho
+    };
+    
+    // Adicionar primeira página e cabeçalho
+    y = addPageHeader(currentPage);
+    
     // Adicionar cabeçalho institucional na primeira página
     async function addInstitutionalHeader() {
       try {
-        // Adicionar texto centralizado
-        pdf.setFontSize(11);
-        pdf.setFont("times", "bold");
-        const textLines = [
-          "ESTADO DE GOIÁS",
-          "SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA",
-          "POLÍCIA CIVIL",
-          "DELEGACIA ESPECIALIZADA EM INVESTIGAÇÕES DE CRIMES DE",
-          "TRÂNSITO - DICT DE GOIÂNIA"
-        ];
-        
-        // Desenhar o texto centralizado
-        let currentY = y;
-        textLines.forEach(line => {
-          pdf.text(line, pageWidth / 2, currentY, { align: "center" });
-          currentY += 5;
-        });
-        
-        // Adicionar espaçamento após o cabeçalho
-        y = currentY + 15;
+        y = addInstitutionalHeaderText();
         
         // Adicionar título do relatório
         pdf.setFontSize(14);
@@ -123,9 +133,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       
       // Verificar se é necessário adicionar nova página
       if (y + (splitText.length * 7) > pageHeight - margin) {
-        pdf.addPage();
-        currentPage++;
-        y = addPageHeader(currentPage);
+        addNewPage();
       }
       
       // Definir alinhamento justificado para o texto
@@ -169,9 +177,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         
         // Verificar se precisa de nova página
         if (currentY + rowHeight > pageHeight - margin) {
-          pdf.addPage();
-          currentPage++;
-          y = addPageHeader(currentPage);
+          addNewPage();
           // Recalcular currentY após adicionar nova página
           const newRowIndex = i;
           const newCurrentY = y + ((newRowIndex - i) * rowHeight);
@@ -305,9 +311,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
             const actualRowHeight = Math.max(rowHeight, splitText.length * 7);
             
             if (y + actualRowHeight > pageHeight - margin) {
-              pdf.addPage();
-              currentPage++;
-              y = addPageHeader(currentPage);
+              addNewPage();
               
               // Desenhar a linha superior da tabela na nova página
               pdf.line(margin, y, margin + contentWidth, y);
@@ -342,7 +346,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         // Mensagem de que não há ocorrências
         pdf.setFontSize(12);
         pdf.setFont("times", "italic");
-        pdf.text("Não houve ocorrências durante o plantão.", margin, y, { align: "justify" });
+        pdf.text("Não houve ocorrências durante o plantão.", margin, y);
         y += 10;
       }
       
@@ -373,9 +377,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
             
             // Verificar se precisa de nova página
             if (y + estimatedHeight > pageHeight - margin) {
-              pdf.addPage();
-              currentPage++;
-              y = addPageHeader(currentPage);
+              addNewPage();
             }
             
             // Configurar borda cinza claro para imagens
@@ -424,7 +426,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         // Mensagem de que não há imagens
         pdf.setFontSize(12);
         pdf.setFont("times", "italic");
-        pdf.text("Sem imagens relevantes", margin, y, { align: "justify" });
+        pdf.text("Sem imagens relevantes", margin, y);
         y += 10;
       }
       
@@ -455,15 +457,13 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         
         // Verificar se é necessário adicionar nova página
         if (y + (splitText.length * 7) > pageHeight - margin) {
-          pdf.addPage();
-          currentPage++;
-          y = addPageHeader(currentPage);
+          addNewPage();
         }
         
         pdf.text(splitText, margin, y, { align: "justify" });
         y += splitText.length * 7;
       } else {
-        pdf.text("Não há informações dignas de nota decorrentes do Plantão ora documentado.", margin, y, { align: "justify" });
+        pdf.text("Não há informações dignas de nota decorrentes do Plantão ora documentado.", margin, y);
         y += 10;
       }
       
@@ -490,7 +490,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       const conclusionText = "Esta equipe finaliza o presente relatório, permanecendo à disposição para eventuais esclarecimentos.";
       const splitText = pdf.splitTextToSize(conclusionText, contentWidth);
       
-      pdf.text(splitText, margin, y, { align: "justify" });
+      pdf.text(splitText, margin, y);
       y += splitText.length * 7 + 15;
       
       return y;
@@ -512,14 +512,14 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         for (const officer of reportData.officers) {
           // Verificar se precisa de nova página
           if (y + 40 > pageHeight - margin) {
-            pdf.addPage();
-            currentPage++;
-            y = addPageHeader(currentPage);
+            addNewPage();
           }
           
           // Linha de assinatura
           const signatureWidth = 80;
           const startX = pageWidth / 2 - signatureWidth / 2;
+          pdf.setLineWidth(0.7);
+          pdf.setDrawColor(0);
           pdf.line(startX, y, startX + signatureWidth, y);
           y += 7;
           
@@ -535,6 +535,8 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         // Assinatura genérica
         const signatureWidth = 80;
         const startX = pageWidth / 2 - signatureWidth / 2;
+        pdf.setLineWidth(0.7);
+        pdf.setDrawColor(0);
         pdf.line(startX, y, startX + signatureWidth, y);
         y += 7;
         
