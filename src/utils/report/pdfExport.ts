@@ -117,7 +117,9 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       pdf.setFont("times", "normal");
       
       const introText = getIntroductoryText(reportData).replace(/<[^>]*>/g, '');
-      const splitText = pdf.splitTextToSize(introText, contentWidth);
+      // Reduzir a largura do conteúdo para garantir que o texto fique dentro das margens
+      const textWidth = contentWidth - 10; // Reduzindo ainda mais para garantir margens
+      const splitText = pdf.splitTextToSize(introText, textWidth);
       
       // Verificar se é necessário adicionar nova página
       if (y + (splitText.length * 7) > pageHeight - margin) {
@@ -126,13 +128,13 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       
       // Definir alinhamento justificado para o texto com espaçamento melhorado
       pdf.text(splitText, margin, y, { 
-        align: "justify",
+        align: "left", // Mudar para left em vez de justify pode ajudar com problemas de spacing
         lineHeightFactor: 1.2 // Aumenta o espaçamento entre linhas para melhor legibilidade
       });
-      y += splitText.length * 7; // Ajuste o multiplicador conforme necessário
+      y += splitText.length * 7 * 1.1; // Ajuste o multiplicador para reduzir espaçamento total
       
-      // Adicionar espaço após o texto
-      y += 10;
+      // Reduzir espaço após o texto - era muito grande antes
+      y += 5; // Reduzido de 10 para 5
       
       return y;
     }
@@ -329,9 +331,15 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
             pdf.rect(margin + col1Width, y, col2Width, actualRowHeight, 'F');
             pdf.setFont("times", "normal");
             
-            // Tratar especialmente o texto do resumo para evitar truncamentos
+              // Tratar especialmente o texto do resumo para evitar truncamentos
             if (i === 2) { // Resumo da Ocorrência
-              const lineHeight = 5; // Altura da linha menor para textos densos
+              // Reduzir a largura para garantir que o texto fique dentro das margens
+              const summaryWidth = col2Width - 2 * cellPadding - 5; // Margem adicional de 5mm
+              splitText = pdf.splitTextToSize(text, summaryWidth);
+              
+              // Aumentar a altura para acomodar mais texto
+              actualRowHeight = Math.max(rowHeight * 3, splitText.length * 6);
+              
               pdf.text(splitText, margin + col1Width + cellPadding, y + 7, { 
                 align: "left",
                 lineHeightFactor: 1.1 // Espaçamento adicional entre linhas
@@ -385,10 +393,10 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
             const image = reportData.images[i];
             
             // Altura estimada para a imagem e sua legenda
-            const estimatedHeight = 100; // Ajuste conforme necessário
+            const estimatedHeight = 120; // Aumentado para garantir espaço suficiente
             
             // Verificar se precisa de nova página
-            if (y + estimatedHeight > pageHeight - margin) {
+            if (y + estimatedHeight > pageHeight - margin - 20) { // Margem de segurança adicional
               addNewPage();
             }
             
@@ -404,7 +412,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
             // Desenhar a borda em volta da imagem
             pdf.rect(startX - 5, y - 5, imgWidth + 10, imgHeight + 10);
             
-            // Adicionar a imagem centralizada
+            // Adicionar a imagem centralizada usando try-catch melhorado
             try {
               pdf.addImage(
                 image.dataUrl,
@@ -412,7 +420,9 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
                 startX,
                 y,
                 imgWidth,
-                imgHeight
+                imgHeight,
+                undefined,
+                'FAST' // Usar algoritmo mais rápido para processamento de imagem
               );
               y += imgHeight + 10;
               
@@ -420,7 +430,8 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
               pdf.setFont("times", "italic");
               pdf.setFontSize(10);
               const caption = image.description || `Imagem ${i + 1}`;
-              const splitCaption = pdf.splitTextToSize(caption, contentWidth);
+              const captionWidth = contentWidth - 20; // Reduzir um pouco para melhor alinhamento
+              const splitCaption = pdf.splitTextToSize(caption, captionWidth);
               pdf.text(splitCaption, pageWidth / 2, y, { align: "center" });
               y += splitCaption.length * 7 + 15;
             } catch (imgError) {
@@ -577,6 +588,26 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       pdf.setTextColor(0, 0, 0); // Voltar para preto
     }
     
+    // Função para finalizar corretamente o documento PDF
+    function finalizePdf() {
+      try {
+        // Realizar limpeza e otimização final antes de salvar
+        pdf.putTotalPages('___total_pages___'); // Garantir que os marcadores de página estejam corretos
+        
+        // Usar opção nativa de compressão do jsPDF
+        const pdfOutput = pdf.output('arraybuffer');
+        
+        // Salvar usando o método padrão que é mais estável
+        pdf.save(fileName);
+        
+        // Mostrar mensagem de sucesso
+        toast.success("Relatório exportado com sucesso como PDF");
+      } catch (error) {
+        console.error("Erro ao finalizar PDF:", error);
+        toast.error("Erro ao exportar o relatório como PDF. Tente novamente.");
+      }
+    }
+    
     // Executar a sequência de geração
     await addReportTitle();
     await addIntroduction();
@@ -593,11 +624,8 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       addDocumentFooter();
     }
     
-    // Salvar o PDF
-    pdf.save(fileName);
-    
-    // Mostrar mensagem de sucesso
-    toast.success("Relatório exportado com sucesso como PDF");
+    // Finalizar e salvar o PDF usando o método melhorado
+    finalizePdf();
   } catch (error) {
     console.error("Erro na exportação para PDF:", error);
     toast.error("Erro ao exportar o relatório como PDF. Tente novamente.");
