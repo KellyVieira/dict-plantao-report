@@ -123,17 +123,18 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       const effectiveWidth = contentWidth - 8; // Margem de segurança para garantir justificação
       
       // Definir explicitamente a primeira linha e o restante do texto
-      const firstLine = "Trata-se do relatório de plantão de número 15/2025, referente à jornada plantonista que se";
+      // Incluindo "iniciou no" no final da primeira linha
+      const firstLine = "Trata-se do relatório de plantão de número 15/2025, referente à jornada plantonista que se iniciou no";
       
       // Encontrar o início da segunda linha para extrair corretamente o texto restante
-      const secondLineStart = "iniciou no dia";
+      const secondLineStart = "dia";
       let remainingText = "";
       
       if (introText.includes(secondLineStart)) {
         remainingText = introText.substring(introText.indexOf(secondLineStart));
       } else {
         // Fallback se não encontrar o início da segunda linha
-        remainingText = introText.substring(introText.indexOf("que se") + 6);
+        remainingText = introText.substring(introText.indexOf("iniciou no") + 10);
       }
       
       // Posição vertical atual
@@ -145,8 +146,11 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         currentY = y;
       }
       
-      // Renderizar a primeira linha garantindo que apenas "se" esteja alinhado à direita
-      pdf.text(firstLine, pageWidth - margin, currentY, { align: "right" });
+      // Recuo fixo de 2cm (20mm) para a primeira linha
+      const indentFirstLine = 20;
+      
+      // Renderizar a primeira linha com recuo fixo
+      pdf.text(firstLine, margin + indentFirstLine, currentY);
       currentY += 6; // Avançar para a próxima linha
       
       // Renderizar o resto do texto justificado
