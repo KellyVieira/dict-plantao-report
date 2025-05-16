@@ -81,6 +81,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       pdf.addPage();
       currentPage++;
       y = addPageHeader(currentPage);
+      return y; // Retorna a nova posição Y após adicionar o cabeçalho
     };
     
     // Função para verificar se precisa adicionar nova página
@@ -123,8 +124,11 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         addNewPage();
       }
       
-      // Definir alinhamento justificado para o texto
-      pdf.text(splitText, margin, y, { align: "justify" });
+      // Definir alinhamento justificado para o texto com espaçamento melhorado
+      pdf.text(splitText, margin, y, { 
+        align: "justify",
+        lineHeightFactor: 1.2 // Aumenta o espaçamento entre linhas para melhor legibilidade
+      });
       y += splitText.length * 7; // Ajuste o multiplicador conforme necessário
       
       // Adicionar espaço após o texto
@@ -231,7 +235,8 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         
         // Calcular altura necessária para a célula de policiais
         const splitOfficersText = pdf.splitTextToSize(officersText, col2Width - 2 * cellPadding);
-        const officersCellHeight = Math.max(rowHeight, splitOfficersText.length * 7);
+        // Garantir que haja espaço suficiente para todos os oficiais
+        const officersCellHeight = Math.max(rowHeight, splitOfficersText.length * 8);
         
         // Desenhar a célula de policiais
         pdf.setFillColor(249, 249, 249);
@@ -294,8 +299,18 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
           for (let i = 0; i < occTableData.length; i++) {
             // Verificar se o texto da segunda coluna precisa ser quebrado
             const text = occTableData[i][1];
-            const splitText = pdf.splitTextToSize(text, col2Width - 2 * cellPadding);
-            const actualRowHeight = Math.max(rowHeight, splitText.length * 7);
+            let actualRowHeight;
+            let splitText;
+            
+            if (i === 2 && text) { // Para o Resumo da Ocorrência
+              // Aumentar a altura mínima da linha para textos longos
+              splitText = pdf.splitTextToSize(text, col2Width - 2 * cellPadding);
+              // Garantir que o texto do resumo tenha espaço suficiente
+              actualRowHeight = Math.max(rowHeight * 3, splitText.length * 5);
+            } else {
+              splitText = pdf.splitTextToSize(text, col2Width - 2 * cellPadding);
+              actualRowHeight = Math.max(rowHeight, splitText.length * 7);
+            }
             
             if (y + actualRowHeight > pageHeight - margin) {
               addNewPage();
@@ -313,7 +328,17 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
             pdf.setFillColor(249, 249, 249);
             pdf.rect(margin + col1Width, y, col2Width, actualRowHeight, 'F');
             pdf.setFont("times", "normal");
-            pdf.text(splitText, margin + col1Width + cellPadding, y + 7, { align: "justify" });
+            
+            // Tratar especialmente o texto do resumo para evitar truncamentos
+            if (i === 2) { // Resumo da Ocorrência
+              const lineHeight = 5; // Altura da linha menor para textos densos
+              pdf.text(splitText, margin + col1Width + cellPadding, y + 7, { 
+                align: "left",
+                lineHeightFactor: 1.1 // Espaçamento adicional entre linhas
+              });
+            } else {
+              pdf.text(splitText, margin + col1Width + cellPadding, y + 7, { align: "left" });
+            }
             
             // Desenhar as linhas verticais para esta linha
             pdf.line(margin, y, margin, y + actualRowHeight);
@@ -447,8 +472,11 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
           addNewPage();
         }
         
-        pdf.text(splitText, margin, y, { align: "justify" });
-        y += splitText.length * 7;
+        pdf.text(splitText, margin, y, { 
+          align: "left",
+          lineHeightFactor: 1.2 // Melhor espaçamento entre linhas para legibilidade
+        });
+        y += splitText.length * 7 * 1.2; // Ajuste para o novo espaçamento
       } else {
         pdf.text("Não há informações dignas de nota decorrentes do Plantão ora documentado.", margin, y);
         y += 10;
