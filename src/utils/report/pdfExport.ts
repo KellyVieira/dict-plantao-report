@@ -122,19 +122,25 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       // Calcular a largura do conteúdo
       const effectiveWidth = contentWidth - 8; // Margem de segurança para garantir justificação
       
-      // Definir explicitamente a primeira linha e o restante do texto
-      // Incluindo "iniciou no" no final da primeira linha
-      const firstLine = "Trata-se do relatório de plantão de número 15/2025, referente à jornada plantonista que se iniciou no";
+      // Recuo fixo de 2cm (20mm) para a primeira linha
+      const indentFirstLine = 20;
       
-      // Encontrar o início da segunda linha para extrair corretamente o texto restante
-      const secondLineStart = "dia";
-      let remainingText = "";
+      // Calcular largura disponível para a primeira linha considerando o recuo
+      const firstLineWidth = contentWidth - indentFirstLine;
       
-      if (introText.includes(secondLineStart)) {
-        remainingText = introText.substring(introText.indexOf(secondLineStart));
-      } else {
-        // Fallback se não encontrar o início da segunda linha
-        remainingText = introText.substring(introText.indexOf("iniciou no") + 10);
+      // Definir o início da primeira linha
+      const firstLineStart = "Trata-se do relatório de plantão de número 15/2025, referente à jornada plantonista que se";
+      
+      // Calcular o espaço disponível e decidir exatamente onde cortar a primeira linha
+      const pdfFontSize = 12;
+      const splitFirstLine = pdf.splitTextToSize(firstLineStart, firstLineWidth);
+      
+      // Encontrar o início da segunda linha baseado no que realmente coube na primeira
+      let remainingText = introText;
+      if (splitFirstLine[0] && introText.includes(splitFirstLine[0])) {
+        const firstLineEnd = splitFirstLine[0];
+        const firstLineEndIndex = introText.indexOf(firstLineEnd) + firstLineEnd.length;
+        remainingText = introText.substring(firstLineEndIndex).trim();
       }
       
       // Posição vertical atual
@@ -146,11 +152,8 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         currentY = y;
       }
       
-      // Recuo fixo de 2cm (20mm) para a primeira linha
-      const indentFirstLine = 20;
-      
-      // Renderizar a primeira linha com recuo fixo
-      pdf.text(firstLine, margin + indentFirstLine, currentY);
+      // Renderizar a primeira linha com recuo fixo e largura controlada
+      pdf.text(splitFirstLine[0], margin + indentFirstLine, currentY);
       currentY += 6; // Avançar para a próxima linha
       
       // Renderizar o resto do texto justificado
