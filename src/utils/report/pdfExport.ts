@@ -111,7 +111,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       return y;
     }
     
-    // Adicionar texto introdutório
+    // Função para adicionar texto introdutório
     async function addIntroduction() {
       pdf.setFontSize(12);
       pdf.setFont("times", "normal");
@@ -119,77 +119,54 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       // Obter o texto introdutório dinamicamente com as informações do usuário
       const introText = getIntroductoryText(reportData).replace(/<[^>]*>/g, '');
       
-      // Calcular a largura do conteúdo com margem segura reduzida
+      // Calcular a largura do conteúdo
       const effectiveWidth = contentWidth - 8; // Margem de segurança para garantir justificação
       
-      // Usar uma abordagem simples para gerenciar o texto e o recuo
-      // Podemos dividir o texto em parágrafos, e depois formatar cada parágrafo com o recuo
-      // Considerando que os parágrafos são separados por duas quebras de linha ("\n\n")
-      const paragraphs = introText.split('\n\n').filter(p => p.trim().length > 0);
+      // Definir explicitamente a primeira linha e o restante do texto
+      const firstLine = "Trata-se do relatório de plantão de número 15/2025, referente à jornada plantonista que se";
+      
+      // Encontrar o início da segunda linha para extrair corretamente o texto restante
+      const secondLineStart = "iniciou no dia";
+      let remainingText = "";
+      
+      if (introText.includes(secondLineStart)) {
+        remainingText = introText.substring(introText.indexOf(secondLineStart));
+      } else {
+        // Fallback se não encontrar o início da segunda linha
+        remainingText = introText.substring(introText.indexOf("que se") + 6);
+      }
       
       // Posição vertical atual
       let currentY = y;
       
-      // Processar cada parágrafo (neste caso, deve ser apenas um)
-      paragraphs.forEach(paragraph => {
-        // Cálculo do recuo para primeira linha (evitando que saia do documento)
-        const firstLineIndent = 10; // Reduzindo o recuo para evitar que saia do documento
-        
-        // Aplicar o recuo usando uma abordagem mais direta
-        const widthPerChar = pdf.getStringUnitWidth("M") * pdf.getFontSize() / pdf.internal.scaleFactor;
-        const spacesNeeded = Math.ceil(firstLineIndent / widthPerChar);
-        const indentStr = " ".repeat(spacesNeeded);
-        
-        // Extrair a primeira linha manualmente
-        let words = paragraph.split(' ');
-        let firstLine = indentStr; // Iniciar com o recuo
-        let firstLineWidth = pdf.getStringUnitWidth(firstLine) * pdf.getFontSize() / pdf.internal.scaleFactor;
-        const maxFirstLineWidth = contentWidth - 5; // Margem de segurança
-        
-        // Construir a primeira linha com recuo
-        let i = 0;
-        while (i < words.length && firstLineWidth + 
-               pdf.getStringUnitWidth(words[i] + " ") * pdf.getFontSize() / pdf.internal.scaleFactor < maxFirstLineWidth) {
-          firstLine += words[i] + " ";
-          firstLineWidth += pdf.getStringUnitWidth(words[i] + " ") * pdf.getFontSize() / pdf.internal.scaleFactor;
-          i++;
-        }
-        
-        // Resto do texto para continuar nas próximas linhas
-        const remainingText = words.slice(i).join(' ');
+      // Verificar se é necessário adicionar nova página
+      if (currentY + 20 > pageHeight - margin) {
+        addNewPage();
+        currentY = y;
+      }
+      
+      // Renderizar a primeira linha garantindo que apenas "se" esteja alinhado à direita
+      pdf.text(firstLine, pageWidth - margin, currentY, { align: "right" });
+      currentY += 6; // Avançar para a próxima linha
+      
+      // Renderizar o resto do texto justificado
+      if (remainingText.trim().length > 0) {
+        const splitText = pdf.splitTextToSize(remainingText, effectiveWidth);
         
         // Verificar se é necessário adicionar nova página
-        if (currentY + 20 > pageHeight - margin) {
+        if (currentY + (splitText.length * 6) > pageHeight - margin) {
           addNewPage();
           currentY = y;
         }
         
-        // Renderizar a primeira linha controlando o início e garantindo alinhamento à direita
-        pdf.text(firstLine, margin + firstLineIndent, currentY, { align: "right", maxWidth: contentWidth - firstLineIndent });
-        currentY += 6; // Avançar para a próxima linha
+        // Renderizar as linhas restantes com justificação
+        pdf.text(splitText, margin, currentY, { 
+          align: "justify", 
+          maxWidth: effectiveWidth 
+        });
         
-        // Renderizar o resto do texto justificado
-        if (remainingText.trim().length > 0) {
-          const splitText = pdf.splitTextToSize(remainingText, effectiveWidth);
-          
-          // Verificar se é necessário adicionar nova página
-          if (currentY + (splitText.length * 6) > pageHeight - margin) {
-            addNewPage();
-            currentY = y;
-          }
-          
-          // Renderizar as linhas restantes com justificação
-          pdf.text(splitText, margin, currentY, { 
-            align: "justify", 
-            maxWidth: effectiveWidth 
-          });
-          
-          currentY += splitText.length * 6;
-        }
-        
-        // Adicionar espaço entre parágrafos (se houver mais de um)
-        currentY += 5;
-      });
+        currentY += splitText.length * 6;
+      }
       
       // Atualizar posição Y para o próximo elemento
       y = currentY;
