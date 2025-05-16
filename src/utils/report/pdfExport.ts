@@ -117,31 +117,59 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       pdf.setFont("times", "normal");
       
       const introText = getIntroductoryText(reportData).replace(/<[^>]*>/g, '');
-      // Reduzir a largura do conteúdo para garantir que o texto fique dentro das margens
-      const textWidth = contentWidth - 10; // Reduzindo ainda mais para garantir margens
-      const splitText = pdf.splitTextToSize(introText, textWidth);
+      
+      // Calcular a largura do conteúdo para garantir que o texto fique dentro das margens
+      const textWidth = contentWidth - 5; // Reduzir um pouco para garantir margens
+      
+      // Define o recuo da primeira linha (2cm = 20mm)
+      const firstLineIndent = 20;
+      
+      // Aplicar recuo da primeira linha manualmente (jsPDF não tem essa funcionalidade direta)
+      const words = introText.split(' ');
+      let firstLine = '\u00A0'.repeat(8); // Usando espaços não quebráveis para recuo (aproximadamente 2cm)
+      
+      // Adicionar palavras até completar a primeira linha com recuo
+      let i = 0;
+      while (i < words.length && 
+             pdf.getStringUnitWidth(firstLine + words[i]) * 12 / pdf.internal.scaleFactor < (textWidth - firstLineIndent)) {
+        firstLine += words[i] + ' ';
+        i++;
+      }
+      
+      // Texto restante sem recuo
+      const remainingText = words.slice(i).join(' ');
+      
+      // Quebrar o texto em linhas para respeitar as margens
+      const firstLineWrapped = pdf.splitTextToSize(firstLine, textWidth);
+      const remainingTextWrapped = pdf.splitTextToSize(remainingText, textWidth);
+      
+      // Combinar primeira linha com recuo e o resto do texto
+      const allLines = [...firstLineWrapped, ...remainingTextWrapped];
       
       // Verificar se é necessário adicionar nova página
-      if (y + (splitText.length * 7) > pageHeight - margin) {
+      if (y + (allLines.length * 7) > pageHeight - margin) {
         addNewPage();
       }
       
-      // Definir alinhamento justificado para o texto com espaçamento melhorado
-      pdf.text(splitText, margin, y, { 
-        align: "left", // Mudar para left em vez de justify pode ajudar com problemas de spacing
-        lineHeightFactor: 1.2 // Aumenta o espaçamento entre linhas para melhor legibilidade
+      // Definir alinhamento justificado para o texto
+      pdf.text(allLines, margin, y, { 
+        align: "justify",
+        lineHeightFactor: 1.15 // Melhor espaçamento entre linhas
       });
-      y += splitText.length * 7 * 1.1; // Ajuste o multiplicador para reduzir espaçamento total
       
-      // Reduzir espaço após o texto - era muito grande antes
-      y += 5; // Reduzido de 10 para 5
+      // Atualizar posição Y - usar fator multiplicador menor para reduzir espaço
+      y += allLines.length * 7 * 1.05;
+      
+      // Espaço após o texto introdutório - reduzido para economizar espaço
+      y += 10;
       
       return y;
     }
     
     // Função para adicionar as tabelas de dados
     async function addDataTables() {
-      checkAndAddNewPage(40);
+      // Espaço antes das tabelas
+      y += 15;
       
       // Dados do plantão
       const tableData = [
@@ -218,8 +246,6 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       
       // Tabela de policiais (se houver)
       if (reportData.officers && reportData.officers.length > 0) {
-        checkAndAddNewPage(30);
-        
         // Desenhar a linha superior da tabela
         pdf.line(margin, y, margin + contentWidth, y);
         
@@ -229,10 +255,13 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         pdf.setFont("times", "bold");
         pdf.text("Policiais da Equipe", margin + cellPadding, y + 7);
         
-        // Preparar texto de policiais
+        // Preparar texto de policiais com bullets
         let officersText = "";
-        reportData.officers.forEach(officer => {
-          officersText += `${officer.name} - ${officer.role}\n`;
+        reportData.officers.forEach((officer, index) => {
+          officersText += `\u2022 ${officer.name} - ${officer.role}`;
+          if (index < reportData.officers.length - 1) {
+            officersText += "\n";
+          }
         });
         
         // Calcular altura necessária para a célula de policiais
@@ -257,6 +286,9 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         // Atualizar a posição Y
         y += officersCellHeight + 15;
       }
+      
+      // Forçar uma quebra de página após as tabelas para que a seção de ocorrências comece em uma nova página
+      addNewPage();
       
       return y;
     }
