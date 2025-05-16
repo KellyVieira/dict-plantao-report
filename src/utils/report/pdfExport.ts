@@ -116,60 +116,73 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       pdf.setFontSize(12);
       pdf.setFont("times", "normal");
       
+      // Obter o texto introdutório
       const introText = getIntroductoryText(reportData).replace(/<[^>]*>/g, '');
       
-      // Calcular a largura do conteúdo para garantir que o texto fique dentro das margens
-      const textWidth = contentWidth - 5; // Reduzir um pouco para garantir margens
+      // Calcular a largura do conteúdo efetiva com margem segura
+      const effectiveWidth = contentWidth - 8; // Reduzir para garantir margem direita
       
-      // Define o recuo da primeira linha (2cm = 20mm)
-      const firstLineIndent = 20;
-      
-      // Aplicar recuo da primeira linha manualmente (jsPDF não tem essa funcionalidade direta)
+      // Quebrar o texto em linhas mantendo um único parágrafo (sem dividir)
       const words = introText.split(' ');
-      let firstLine = '\u00A0'.repeat(8); // Usando espaços não quebráveis para recuo (aproximadamente 2cm)
       
-      // Adicionar palavras até completar a primeira linha com recuo
-      let i = 0;
-      while (i < words.length && 
-             pdf.getStringUnitWidth(firstLine + words[i]) * 12 / pdf.internal.scaleFactor < (textWidth - firstLineIndent)) {
-        firstLine += words[i] + ' ';
-        i++;
+      // Criar o texto com recuo na primeira linha
+      let firstLine = '\u00A0'.repeat(8) + words[0] + ' '; // Usar espaços não quebráveis para recuo (2cm)
+      let currentLine = firstLine;
+      let formattedText = [];
+      let lineWidth = pdf.getStringUnitWidth(currentLine) * 12 / pdf.internal.scaleFactor;
+      
+      // Montar o texto linha por linha para manter controle das margens
+      for (let i = 1; i < words.length; i++) {
+        const wordWidth = pdf.getStringUnitWidth(words[i] + ' ') * 12 / pdf.internal.scaleFactor;
+        
+        if (lineWidth + wordWidth < effectiveWidth) {
+          // Adicionar palavra à linha atual
+          currentLine += words[i] + ' ';
+          lineWidth += wordWidth;
+        } else {
+          // Adicionar linha atual ao texto formatado e iniciar nova linha
+          formattedText.push(currentLine.trim());
+          currentLine = words[i] + ' ';
+          lineWidth = wordWidth;
+        }
       }
       
-      // Texto restante sem recuo
-      const remainingText = words.slice(i).join(' ');
-      
-      // Quebrar o texto em linhas para respeitar as margens
-      const firstLineWrapped = pdf.splitTextToSize(firstLine, textWidth);
-      const remainingTextWrapped = pdf.splitTextToSize(remainingText, textWidth);
-      
-      // Combinar primeira linha com recuo e o resto do texto
-      const allLines = [...firstLineWrapped, ...remainingTextWrapped];
+      // Adicionar a última linha
+      if (currentLine.trim()) {
+        formattedText.push(currentLine.trim());
+      }
       
       // Verificar se é necessário adicionar nova página
-      if (y + (allLines.length * 7) > pageHeight - margin) {
+      if (y + (formattedText.length * 5) > pageHeight - margin) {
         addNewPage();
       }
       
-      // Definir alinhamento justificado para o texto
-      pdf.text(allLines, margin, y, { 
-        align: "justify",
-        lineHeightFactor: 1.15 // Melhor espaçamento entre linhas
-      });
+      // Definir alinhamento justificado para o texto com espaçamento adequado
+      // Usar método alternativo para garantir justificação com margem direita
+      let textY = y;
       
-      // Atualizar posição Y - usar fator multiplicador menor para reduzir espaço
-      y += allLines.length * 7 * 1.05;
+      // Aplicar justificação linha por linha
+      for (let i = 0; i < formattedText.length; i++) {
+        if (i === formattedText.length - 1) {
+          // Última linha alinhada à esquerda
+          pdf.text(formattedText[i], margin, textY, { align: "left" });
+        } else {
+          // Outras linhas justificadas
+          pdf.text(formattedText[i], margin, textY, { align: "justify", maxWidth: effectiveWidth });
+        }
+        textY += 5.5; // Espaçamento entre linhas reduzido
+      }
       
-      // Espaço após o texto introdutório - reduzido para economizar espaço
-      y += 10;
+      // Atualizar posição Y - minimizar o espaço após o texto
+      y = textY + 2; // Espaço mínimo após o texto
       
       return y;
     }
     
     // Função para adicionar as tabelas de dados
     async function addDataTables() {
-      // Espaço antes das tabelas
-      y += 15;
+      // Espaço reduzido antes das tabelas
+      y += 5; // Reduzido de 15 para apenas 5
       
       // Dados do plantão
       const tableData = [
@@ -241,8 +254,8 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         pdf.line(margin + contentWidth, y, margin + contentWidth, y + tableData.length * rowHeight);
       }
       
-      // Atualizar a posição Y após a tabela
-      y += tableData.length * rowHeight + 15;
+      // Atualizar a posição Y após a tabela - reduzir o espaço entre tabelas
+      y += tableData.length * rowHeight + 8; // Reduzido de 15 para 8
       
       // Tabela de policiais (se houver)
       if (reportData.officers && reportData.officers.length > 0) {
@@ -284,7 +297,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         pdf.line(margin, y + officersCellHeight, margin + contentWidth, y + officersCellHeight);
         
         // Atualizar a posição Y
-        y += officersCellHeight + 15;
+        y += officersCellHeight + 5; // Reduzido de 15 para 5
       }
       
       // Forçar uma quebra de página após as tabelas para que a seção de ocorrências comece em uma nova página
