@@ -119,58 +119,76 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       // Obter o texto introdutório dinamicamente com as informações do usuário
       const introText = getIntroductoryText(reportData).replace(/<[^>]*>/g, '');
       
-      // Calcular a largura do conteúdo com margem segura
-      const effectiveWidth = contentWidth - 8; // Margem de segurança para a direita
+      // Calcular a largura do conteúdo com margem segura aumentada
+      const effectiveWidth = contentWidth - 10; // Margem de segurança maior (10mm)
       
-      // Criar a primeira linha com recuo de 2cm (aprox. 8 espaços não quebráveis)
-      const indent = '\u00A0'.repeat(8); // Espaços não quebráveis para o recuo de 2cm
-      
-      // Dividir o texto em palavras, preservando espaços após os pontos
+      // Dividir o texto em palavras
       const words = introText.split(' ');
       
-      // Processamento do texto linha por linha para controle preciso da formatação
-      let currentLine = indent; // Começa com o recuo
-      let lines = [];
-      let lineWidth = pdf.getStringUnitWidth(currentLine) * 12 / pdf.internal.scaleFactor;
+      // Recuo da primeira linha em mm (20mm = 2cm)
+      const firstLineIndent = 20;
       
-      // Adicionar cada palavra, mantendo o controle da largura da linha
+      // Construir as linhas manualmente
+      const lines = [];
+      let currentLine = '';
+      let isFirstLine = true;
+      let currentWidth = isFirstLine ? firstLineIndent : 0;
+      
+      // Processar palavra por palavra
       for (let i = 0; i < words.length; i++) {
-        const currentWord = words[i];
-        const wordWidth = pdf.getStringUnitWidth(currentWord + ' ') * 12 / pdf.internal.scaleFactor;
+        const word = words[i];
+        const wordWidth = pdf.getStringUnitWidth(word + ' ') * 12 / pdf.internal.scaleFactor;
         
         // Verificar se a palavra cabe na linha atual
-        if (lineWidth + wordWidth < effectiveWidth) {
-          currentLine += currentWord + ' ';
-          lineWidth += wordWidth;
+        if (currentWidth + wordWidth < effectiveWidth) {
+          // Adicionar palavra à linha atual
+          currentLine += word + ' ';
+          currentWidth += wordWidth;
         } else {
-          // Adicionar a linha atual e começar uma nova linha
-          lines.push(currentLine.trim());
-          currentLine = currentWord + ' ';
-          lineWidth = wordWidth;
+          // Adicionar a linha atual ao array de linhas
+          lines.push({ text: currentLine.trim(), firstLine: isFirstLine });
+          
+          // Iniciar nova linha com a palavra atual
+          currentLine = word + ' ';
+          isFirstLine = false;
+          currentWidth = wordWidth;
         }
       }
       
-      // Adicionar a última linha se não estiver vazia
+      // Adicionar a última linha
       if (currentLine.trim()) {
-        lines.push(currentLine.trim());
+        lines.push({ text: currentLine.trim(), firstLine: isFirstLine });
       }
       
       // Verificar se é necessário adicionar nova página
-      const totalHeight = lines.length * 5.5; // Altura estimada de todas as linhas
-      if (y + totalHeight > pageHeight - margin) {
+      if (y + (lines.length * 6) > pageHeight - margin) {
         addNewPage();
       }
       
-      // Renderizar o texto linha por linha com justificação
+      // Renderizar as linhas
       let currentY = y;
+      
       for (let i = 0; i < lines.length; i++) {
-        // Última linha alinhada à esquerda, outras justificadas
-        if (i === lines.length - 1) {
-          pdf.text(lines[i], margin, currentY, { align: "left" });
+        const line = lines[i];
+        
+        if (line.firstLine) {
+          // Primeira linha com recuo
+          const indentSpaces = '\u00A0'.repeat(8); // Aproximadamente 2cm de recuo
+          
+          // Para a primeira linha usar alinhamento à esquerda com recuo manual
+          pdf.text(indentSpaces + line.text, margin, currentY, { align: "left" });
+        } else if (i === lines.length - 1) {
+          // Última linha - alinhada à esquerda (padrão tipográfico)
+          pdf.text(line.text, margin, currentY, { align: "left" });
         } else {
-          pdf.text(lines[i], margin, currentY, { align: "justify", maxWidth: effectiveWidth });
+          // Linhas intermediarias - justificadas
+          pdf.text(line.text, margin, currentY, { 
+            align: "justify", 
+            maxWidth: effectiveWidth 
+          });
         }
-        currentY += 5.5; // Espaçamento entre linhas
+        
+        currentY += 6; // Espaçamento entre linhas
       }
       
       // Atualizar posição Y com espaço mínimo após o texto
