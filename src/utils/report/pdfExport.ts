@@ -166,8 +166,8 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
           currentY = y;
         }
         
-        // Renderizar a primeira linha com recuo
-        pdf.text(firstLine, margin, currentY);
+        // Renderizar a primeira linha com recuo e alinhada à direita
+        pdf.text(firstLine, margin, currentY, { align: "right", maxWidth: contentWidth - margin });
         currentY += 6; // Avançar para a próxima linha
         
         // Renderizar o resto do texto justificado
