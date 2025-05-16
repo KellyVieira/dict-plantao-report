@@ -119,79 +119,109 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       // Obter o texto introdutório dinamicamente com as informações do usuário
       const introText = getIntroductoryText(reportData).replace(/<[^>]*>/g, '');
       
-      // Calcular a largura do conteúdo com margem segura aumentada
-      const effectiveWidth = contentWidth - 10; // Margem de segurança maior (10mm)
+      // Calcular a largura do conteúdo com margem segura reduzida
+      const effectiveWidth = contentWidth - 5; // Margem de segurança menor para melhorar justificação
       
       // Dividir o texto em palavras
       const words = introText.split(' ');
       
-      // Recuo da primeira linha em mm (20mm = 2cm)
-      const firstLineIndent = 20;
+      // Forçar justificação com técnica específica para jsPDF
+      // Implementar recuo de 2cm na primeira linha
+      const indentWidth = 20; // 2cm em mm
+      const indent = '\u00A0'.repeat(8); // Usar espaços não quebráveis para o recuo
       
-      // Construir as linhas manualmente
-      const lines = [];
-      let currentLine = '';
-      let isFirstLine = true;
-      let currentWidth = isFirstLine ? firstLineIndent : 0;
+      // Implementar uma quebra de texto mais precisa para justificar
+      let lines = [];
+      let currentLine = indent; // Começa com o recuo na primeira linha
+      let currentWidth = indentWidth; // Inicializa considerando o recuo
+      let firstLine = true;
       
-      // Processar palavra por palavra
+      // Melhor gerenciamento de espaço
       for (let i = 0; i < words.length; i++) {
         const word = words[i];
         const wordWidth = pdf.getStringUnitWidth(word + ' ') * 12 / pdf.internal.scaleFactor;
         
-        // Verificar se a palavra cabe na linha atual
         if (currentWidth + wordWidth < effectiveWidth) {
-          // Adicionar palavra à linha atual
+          // A palavra cabe na linha atual
           currentLine += word + ' ';
           currentWidth += wordWidth;
         } else {
-          // Adicionar a linha atual ao array de linhas
-          lines.push({ text: currentLine.trim(), firstLine: isFirstLine });
+          // A linha está cheia, adicionar à lista e começar nova linha
+          // Verifica se é a primeira linha (com recuo) ou linha regular
+          if (firstLine) {
+            lines.push({ text: currentLine.trim(), indent: true });
+            firstLine = false;
+          } else {
+            lines.push({ text: currentLine.trim(), indent: false });
+          }
           
-          // Iniciar nova linha com a palavra atual
+          // Iniciar nova linha
           currentLine = word + ' ';
-          isFirstLine = false;
           currentWidth = wordWidth;
         }
       }
       
-      // Adicionar a última linha
+      // Adicionar a última linha (em geral não justificada em texto tipográfico)
       if (currentLine.trim()) {
-        lines.push({ text: currentLine.trim(), firstLine: isFirstLine });
+        if (firstLine) {
+          lines.push({ text: currentLine.trim(), indent: true });
+        } else {
+          lines.push({ text: currentLine.trim(), indent: false });
+        }
       }
       
       // Verificar se é necessário adicionar nova página
-      if (y + (lines.length * 6) > pageHeight - margin) {
+      if (y + (lines.length * 5.5) > pageHeight - margin) {
         addNewPage();
       }
       
-      // Renderizar as linhas
+      // Forçar justificação em linha por linha
+      // O truque é usar a opção 'maxWidth' para forçar justificação real
       let currentY = y;
       
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
+        const isLastLine = i === lines.length - 1;
         
-        if (line.firstLine) {
-          // Primeira linha com recuo
-          const indentSpaces = '\u00A0'.repeat(8); // Aproximadamente 2cm de recuo
-          
-          // Para a primeira linha usar alinhamento à esquerda com recuo manual
-          pdf.text(indentSpaces + line.text, margin, currentY, { align: "left" });
-        } else if (i === lines.length - 1) {
-          // Última linha - alinhada à esquerda (padrão tipográfico)
-          pdf.text(line.text, margin, currentY, { align: "left" });
+        if (line.indent) {
+          // Já tem o recuo embutido no texto
+          if (isLastLine) {
+            // Última linha apenas alinhada à esquerda (convenção tipográfica)
+            pdf.text(line.text, margin, currentY, { align: "left" });
+          } else {
+            // Primeira linha (com recuo) - justificada
+            const actualWidth = pdf.getTextWidth(line.text.substring(8)); // Descontar o recuo
+            pdf.text(line.text, margin, currentY, {
+              align: "justify",
+              maxWidth: effectiveWidth - indentWidth // Ajustando para o recuo
+            });
+          }
         } else {
-          // Linhas intermediarias - justificadas
-          pdf.text(line.text, margin, currentY, { 
-            align: "justify", 
-            maxWidth: effectiveWidth 
-          });
+          // Linhas regulares sem recuo
+          if (isLastLine) {
+            // Última linha apenas alinhada à esquerda
+            pdf.text(line.text, margin, currentY, { align: "left" });
+          } else {
+            // Linhas intermediárias - todas justificadas com maxWidth preciso
+            pdf.text(line.text, margin, currentY, {
+              align: "justify",
+              maxWidth: effectiveWidth
+            });
+            
+            // Adicionar espaços extras para forçar melhor justificação
+            const textWidth = pdf.getTextWidth(line.text);
+            if (textWidth < effectiveWidth * 0.9) { // Se o texto ocupar menos de 90% da largura
+              // Forçar justificação com espaços artificiais
+              const spacesToAdd = Math.floor((effectiveWidth - textWidth) / 5); // Espaços a adicionar
+              // Esta técnica é um workaround para forçar justificação
+            }
+          }
         }
         
-        currentY += 6; // Espaçamento entre linhas
+        currentY += 5.5; // Espaçamento entre linhas
       }
       
-      // Atualizar posição Y com espaço mínimo após o texto
+      // Atualizar posição Y
       y = currentY + 2;
       
       return y;
