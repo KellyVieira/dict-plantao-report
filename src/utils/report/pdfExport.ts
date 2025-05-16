@@ -116,65 +116,65 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       pdf.setFontSize(12);
       pdf.setFont("times", "normal");
       
-      // Obter o texto introdutório
+      // Obter o texto introdutório dinamicamente com as informações do usuário
       const introText = getIntroductoryText(reportData).replace(/<[^>]*>/g, '');
       
-      // Calcular a largura do conteúdo efetiva com margem segura
-      const effectiveWidth = contentWidth - 8; // Reduzir para garantir margem direita
+      // Calcular a largura do conteúdo com margem segura
+      const effectiveWidth = contentWidth - 8; // Margem de segurança para a direita
       
-      // Quebrar o texto em linhas mantendo um único parágrafo (sem dividir)
+      // Criar a primeira linha com recuo de 2cm (aprox. 8 espaços não quebráveis)
+      const indent = '\u00A0'.repeat(8); // Espaços não quebráveis para o recuo de 2cm
+      
+      // Dividir o texto em palavras, preservando espaços após os pontos
       const words = introText.split(' ');
       
-      // Criar o texto com recuo na primeira linha
-      let firstLine = '\u00A0'.repeat(8) + words[0] + ' '; // Usar espaços não quebráveis para recuo (2cm)
-      let currentLine = firstLine;
-      let formattedText = [];
+      // Processamento do texto linha por linha para controle preciso da formatação
+      let currentLine = indent; // Começa com o recuo
+      let lines = [];
       let lineWidth = pdf.getStringUnitWidth(currentLine) * 12 / pdf.internal.scaleFactor;
       
-      // Montar o texto linha por linha para manter controle das margens
-      for (let i = 1; i < words.length; i++) {
-        const wordWidth = pdf.getStringUnitWidth(words[i] + ' ') * 12 / pdf.internal.scaleFactor;
+      // Adicionar cada palavra, mantendo o controle da largura da linha
+      for (let i = 0; i < words.length; i++) {
+        const currentWord = words[i];
+        const wordWidth = pdf.getStringUnitWidth(currentWord + ' ') * 12 / pdf.internal.scaleFactor;
         
+        // Verificar se a palavra cabe na linha atual
         if (lineWidth + wordWidth < effectiveWidth) {
-          // Adicionar palavra à linha atual
-          currentLine += words[i] + ' ';
+          currentLine += currentWord + ' ';
           lineWidth += wordWidth;
         } else {
-          // Adicionar linha atual ao texto formatado e iniciar nova linha
-          formattedText.push(currentLine.trim());
-          currentLine = words[i] + ' ';
+          // Adicionar a linha atual e começar uma nova linha
+          lines.push(currentLine.trim());
+          currentLine = currentWord + ' ';
           lineWidth = wordWidth;
         }
       }
       
-      // Adicionar a última linha
+      // Adicionar a última linha se não estiver vazia
       if (currentLine.trim()) {
-        formattedText.push(currentLine.trim());
+        lines.push(currentLine.trim());
       }
       
       // Verificar se é necessário adicionar nova página
-      if (y + (formattedText.length * 5) > pageHeight - margin) {
+      const totalHeight = lines.length * 5.5; // Altura estimada de todas as linhas
+      if (y + totalHeight > pageHeight - margin) {
         addNewPage();
       }
       
-      // Definir alinhamento justificado para o texto com espaçamento adequado
-      // Usar método alternativo para garantir justificação com margem direita
-      let textY = y;
-      
-      // Aplicar justificação linha por linha
-      for (let i = 0; i < formattedText.length; i++) {
-        if (i === formattedText.length - 1) {
-          // Última linha alinhada à esquerda
-          pdf.text(formattedText[i], margin, textY, { align: "left" });
+      // Renderizar o texto linha por linha com justificação
+      let currentY = y;
+      for (let i = 0; i < lines.length; i++) {
+        // Última linha alinhada à esquerda, outras justificadas
+        if (i === lines.length - 1) {
+          pdf.text(lines[i], margin, currentY, { align: "left" });
         } else {
-          // Outras linhas justificadas
-          pdf.text(formattedText[i], margin, textY, { align: "justify", maxWidth: effectiveWidth });
+          pdf.text(lines[i], margin, currentY, { align: "justify", maxWidth: effectiveWidth });
         }
-        textY += 5.5; // Espaçamento entre linhas reduzido
+        currentY += 5.5; // Espaçamento entre linhas
       }
       
-      // Atualizar posição Y - minimizar o espaço após o texto
-      y = textY + 2; // Espaço mínimo após o texto
+      // Atualizar posição Y com espaço mínimo após o texto
+      y = currentY + 2;
       
       return y;
     }
