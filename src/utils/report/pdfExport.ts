@@ -132,21 +132,19 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       
       // Processar cada parágrafo (neste caso, deve ser apenas um)
       paragraphs.forEach(paragraph => {
-        // Recuo para primeira linha (20mm = 2cm)
-        const firstLineIndent = 20;
+        // Cálculo do recuo para primeira linha (evitando que saia do documento)
+        const firstLineIndent = 10; // Reduzindo o recuo para evitar que saia do documento
         
         // Aplicar o recuo usando uma abordagem mais direta
-        // Adicionar o recuo como um texto vazio no início da primeira linha
         const widthPerChar = pdf.getStringUnitWidth("M") * pdf.getFontSize() / pdf.internal.scaleFactor;
         const spacesNeeded = Math.ceil(firstLineIndent / widthPerChar);
         const indentStr = " ".repeat(spacesNeeded);
         
-        // Aplicar justificação de forma especial para a primeira linha
         // Extrair a primeira linha manualmente
         let words = paragraph.split(' ');
         let firstLine = indentStr; // Iniciar com o recuo
         let firstLineWidth = pdf.getStringUnitWidth(firstLine) * pdf.getFontSize() / pdf.internal.scaleFactor;
-        const maxFirstLineWidth = effectiveWidth - firstLineIndent;
+        const maxFirstLineWidth = contentWidth - 5; // Margem de segurança
         
         // Construir a primeira linha com recuo
         let i = 0;
@@ -166,8 +164,8 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
           currentY = y;
         }
         
-        // Renderizar a primeira linha com recuo e alinhada à direita
-        pdf.text(firstLine, margin, currentY, { align: "right", maxWidth: contentWidth });
+        // Renderizar a primeira linha controlando o início e garantindo alinhamento à direita
+        pdf.text(firstLine, margin + firstLineIndent, currentY, { align: "right", maxWidth: contentWidth - firstLineIndent });
         currentY += 6; // Avançar para a próxima linha
         
         // Renderizar o resto do texto justificado
