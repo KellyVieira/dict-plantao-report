@@ -122,27 +122,6 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
       // Calcular a largura do conteúdo
       const effectiveWidth = contentWidth - 8; // Margem de segurança para garantir justificação
       
-      // Recuo fixo de 2cm (20mm) para a primeira linha
-      const indentFirstLine = 20;
-      
-      // Calcular largura disponível para a primeira linha considerando o recuo
-      const firstLineWidth = contentWidth - indentFirstLine;
-      
-      // Definir o início da primeira linha
-      const firstLineStart = "Trata-se do relatório de plantão de número 15/2025, referente à jornada plantonista que se";
-      
-      // Calcular o espaço disponível e decidir exatamente onde cortar a primeira linha
-      const pdfFontSize = 12;
-      const splitFirstLine = pdf.splitTextToSize(firstLineStart, firstLineWidth);
-      
-      // Encontrar o início da segunda linha baseado no que realmente coube na primeira
-      let remainingText = introText;
-      if (splitFirstLine[0] && introText.includes(splitFirstLine[0])) {
-        const firstLineEnd = splitFirstLine[0];
-        const firstLineEndIndex = introText.indexOf(firstLineEnd) + firstLineEnd.length;
-        remainingText = introText.substring(firstLineEndIndex).trim();
-      }
-      
       // Posição vertical atual
       let currentY = y;
       
@@ -152,13 +131,9 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
         currentY = y;
       }
       
-      // Renderizar a primeira linha com recuo fixo e largura controlada
-      pdf.text(splitFirstLine[0], margin + indentFirstLine, currentY);
-      currentY += 6; // Avançar para a próxima linha
-      
-      // Renderizar o resto do texto justificado
-      if (remainingText.trim().length > 0) {
-        const splitText = pdf.splitTextToSize(remainingText, effectiveWidth);
+      // Renderizar o texto justificado - sem a primeira linha duplicada
+      if (introText.trim().length > 0) {
+        const splitText = pdf.splitTextToSize(introText, effectiveWidth);
         
         // Verificar se é necessário adicionar nova página
         if (currentY + (splitText.length * 6) > pageHeight - margin) {
@@ -166,7 +141,7 @@ export async function exportReportToPdf(reportData: ReportData): Promise<void> {
           currentY = y;
         }
         
-        // Renderizar as linhas restantes com justificação
+        // Renderizar o texto com justificação
         pdf.text(splitText, margin, currentY, { 
           align: "justify", 
           maxWidth: effectiveWidth 
